@@ -1,0 +1,18 @@
+{
+  "name": "documents-browser-demo",
+  "version": "1.0.0",
+  "description": "iOS in-app browser Stage-1 simulation for Documents by Readdle",
+  "private": true,
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm -C server dev\" \"pnpm -C web dev\"",
+    "build": "pnpm -r build",
+    "install:all": "pnpm install && pnpm -r install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
