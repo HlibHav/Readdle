@@ -21,8 +21,8 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
   const [editableTags, setEditableTags] = useState<string[]>([]);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [newTag, setNewTag] = useState('');
-  const { addFile, updateFile, logEvent, cloudAI } = useAppStore();
-  const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { addFile, updateFile, cloudAI } = useAppStore();
+  const autoCloseTimeoutRef = useRef<number | null>(null);
 
   // Handle auto-close timeout
   useEffect(() => {
@@ -116,15 +116,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
         // Add to library
         addFile(fileItem);
 
-        // Log rename event
-        logEvent('pdf_download_rename', {
-          file_id: fileItem.id,
-          original_name: fileItem.originalName,
-          ai_name: fileItem.name,
-          rename_accepted: true,
-          undo_clicked: false
-        });
-
         // Show toast with post-download actions
         setDownloadResult({
           file: fileItem,
@@ -188,12 +179,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
             setTimeout(() => URL.revokeObjectURL(url), 1000);
           }
           
-          // Log action
-          logEvent('pdf_post_download_action', {
-            file_id: downloadResult.file.id,
-            action_chosen: 'open',
-            folder_target: null
-          });
           
           setShowToast(false);
         } catch (error) {
@@ -218,12 +203,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
       // Move file to selected folder
       updateFile(downloadResult.file.id, { folder: folderId });
       
-      // Log action
-      logEvent('pdf_post_download_action', {
-        file_id: downloadResult.file.id,
-        action_chosen: 'organize',
-        folder_target: folderId
-      });
 
       // Show confirmation toast
       setDownloadResult({
@@ -243,12 +222,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
       // Move back to Downloads
       updateFile(downloadResult.file.id, { folder: 'default' });
       
-      // Log undo action
-      logEvent('pdf_post_download_action', {
-        file_id: downloadResult.file.id,
-        action_chosen: 'undo_move',
-        folder_target: 'default'
-      });
       
       setShowToast(false);
     }
@@ -264,14 +237,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
         undoClicked: true
       });
       
-      // Log undo event
-      logEvent('pdf_download_rename', {
-        file_id: downloadResult.file.id,
-        original_name: downloadResult.file.originalName,
-        ai_name: downloadResult.file.name,
-        rename_accepted: false,
-        undo_clicked: true
-      });
       
       setShowToast(false);
     }
@@ -288,17 +253,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
         aiRenameAccepted: false
       });
       
-      // Log user edit event
-      logEvent('pdf_download_rename', {
-        file_id: downloadResult.file.id,
-        original_name: downloadResult.file.originalName,
-        ai_name: downloadResult.originalSuggestedName,
-        user_edited_name: newName,
-        tags: editableTags,
-        rename_accepted: true,
-        undo_clicked: false,
-        user_edited: true
-      });
       
       setIsEditingName(false);
     }
@@ -315,13 +269,6 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
         tags: editableTags
       });
       
-      // Log tag edit event
-      logEvent('pdf_tags_edited', {
-        file_id: downloadResult.file.id,
-        original_tags: downloadResult.originalTags,
-        new_tags: editableTags,
-        tags_added: editableTags.length - (downloadResult.originalTags?.length || 0)
-      });
       
       setIsEditingTags(false);
     }

@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../state/store';
-import { Settings, Library, BarChart3, Moon, Sun } from 'lucide-react';
+import { Settings, Library, Moon, Sun, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,22 +9,29 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { cloudAI, incognito, setCloudAI, setIncognito, logEvent } = useAppStore();
+  const { cloudAI, incognito, setCloudAI, setIncognito, startOnboarding, resetOnboarding } = useAppStore();
 
   const handleCloudAIToggle = () => {
     setCloudAI(!cloudAI);
-    logEvent('privacy_toggle', { cloudAI: !cloudAI });
   };
 
   const handleIncognitoToggle = () => {
     setIncognito(!incognito);
-    logEvent('incognito_toggle', { incognito: !incognito });
+  };
+
+  const handleStartOnboarding = () => {
+    startOnboarding();
+  };
+
+  const handleResetOnboarding = () => {
+    resetOnboarding();
+    // Reload the page to show welcome screen
+    window.location.reload();
   };
 
   const navItems = [
     { path: '/', label: 'Browser', icon: Settings },
     { path: '/library', label: 'Library', icon: Library },
-    { path: '/metrics', label: 'Metrics', icon: BarChart3 },
   ];
 
   return (
@@ -55,6 +62,25 @@ export function Layout({ children }: LayoutProps) {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Onboarding Button */}
+            <button
+              onClick={handleStartOnboarding}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+              title="Start onboarding tour"
+            >
+              <BookOpen size={16} />
+              <span>Tour</span>
+            </button>
+            
+            {/* Reset Onboarding Button (for testing) */}
+            <button
+              onClick={handleResetOnboarding}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+              title="Reset onboarding (for testing)"
+            >
+              <span>Reset</span>
+            </button>
+            
             {/* Privacy Toggle */}
             <button
               onClick={handleCloudAIToggle}

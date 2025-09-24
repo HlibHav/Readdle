@@ -38,7 +38,7 @@ export function UrlBar({
   };
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center space-x-3" data-testid="url-bar">
       <div className="flex-1 relative">
         <div className={`flex items-center border-2 rounded-lg transition-colors ${
           isFocused 

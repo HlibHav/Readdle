@@ -15,8 +15,7 @@ export function BrowserView() {
     setCurrentPage, 
     isLoading, 
     setLoading, 
-    incognito, 
-    logEvent 
+    incognito 
   } = useAppStore();
 
   console.log('BrowserView currentPage:', currentPage);
@@ -43,7 +42,6 @@ export function BrowserView() {
 
     try {
       setLoading(true);
-      logEvent('browser_open', { url });
       
       const content = await extractPageContent(url);
       setCurrentPage({
@@ -71,7 +69,6 @@ export function BrowserView() {
     }
     
     setShowAssistant(!showAssistant);
-    logEvent('assistant_opened', { opened: !showAssistant });
   };
 
   return (
@@ -89,7 +86,11 @@ export function BrowserView() {
               onAssistantToggle={handleAssistantToggle}
               incognito={incognito}
               hasCurrentPage={!!currentPage}
-              currentPage={currentPage}
+              currentPage={currentPage ? {
+                url: currentPage.url,
+                title: currentPage.title,
+                content: currentPage.content
+              } : undefined}
             />
         </div>
 

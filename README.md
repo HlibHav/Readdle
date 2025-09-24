@@ -40,8 +40,6 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 ### **Smart File Management**
 *Screenshot showing drag-and-drop uploads, auto-rename suggestions, and contextual actions*
 
-### **Analytics Dashboard**
-*Screenshot displaying real-time metrics, user engagement, and AI performance analytics*
 
 ### **Mobile-Responsive Design**
 *Screenshot showing the application optimized for mobile and tablet devices*
@@ -62,7 +60,7 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 │ • Web Pages     │───▶│ • LLM Processing│───▶│ • Weaviate      │───▶│ • React Frontend│
 │ • PDF Documents │    │ • Content       │    │ • Vector Search │    │ • Real-time UI  │
 │ • File Uploads  │    │   Extraction    │    │ • Metadata      │    │ • Drag & Drop   │
-│ • User Input    │    │ • Summarization │    │ • Persistence   │    │ • Analytics     │
+│ • User Input    │    │ • Summarization │    │ • Persistence   │    │ • Real-time UI  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │                       │
          │                       │                       │                       │
@@ -107,11 +105,11 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 - ✅ **Preview Functionality**: PDF preview with proper memory management
 - ✅ **Context Menus**: Right-click actions for quick file operations
 
-#### **4. AI & Analytics Integration**
-- ✅ **Real-time Metrics**: Live dashboard showing user engagement and AI performance
-- ✅ **Event Tracking**: Comprehensive logging of all user interactions
-- ✅ **Performance Monitoring**: Response times, success rates, and error tracking
+#### **4. AI Integration**
+- ✅ **Advanced AI Processing**: LLM-powered content analysis and generation
+- ✅ **Intelligent Fallbacks**: Local processing when cloud AI is unavailable
 - ✅ **Privacy Controls**: Toggle between cloud AI and local processing
+- ✅ **Content Understanding**: Context-aware processing with confidence scoring
 
 ### **🔧 Technical Excellence**
 
@@ -176,18 +174,18 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 │   │   ├── DragDropUploader
 │   │   ├── InlineEditor
 │   │   └── ContextMenu
-│   └── Analytics Dashboard
-│       ├── Real-time Metrics
-│       ├── Event Tracking
-│       └── Performance Monitoring
+│   └── User Interface
+│       ├── Drag & Drop
+│       ├── Inline Editing
+│       └── Context Menus
 ├── State Management (Zustand)
 │   ├── File Store (Optimistic Updates)
 │   ├── AI Store (Model State)
-│   └── Analytics Store (Event Tracking)
+│   └── UI Store (Interface State)
 └── Services/
     ├── AI Service (LangChain Integration)
     ├── File Service (Local Storage)
-    └── Analytics Service (Event Tracking)
+    └── UI Service (Interface Management)
 ```
 
 ### **Backend Microservices**
@@ -206,10 +204,10 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 │   ├── suggestFilename.ts (AI Naming)
 │   ├── organizeFiles.ts (Smart Organization)
 │   └── previewService.ts (Document Preview)
-└── Analytics/
-    ├── eventTracking.ts
-    ├── metricsCollection.ts
-    └── performanceMonitoring.ts
+└── Monitoring/
+    ├── errorHandling.ts
+    ├── performanceOptimization.ts
+    └── logging.ts
 ```
 
 ---
@@ -232,7 +230,7 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 
 ### **Quick Start (30 seconds)**
 
-```bash
+   ```bash
 # Clone and setup
 git clone https://github.com/HlibHav/Readdle.git
 cd Readdle
@@ -242,8 +240,8 @@ cd Readdle
 pnpm install
 
 # Start development servers
-pnpm dev
-```
+   pnpm dev
+   ```
 
 ### **Production Deployment**
 
@@ -287,14 +285,14 @@ export NODE_ENV=production
 6. See confirmation: "Moved to Documents ✅"
 ```
 
-#### **Phase 3: File Management & Analytics (20 seconds)**
+#### **Phase 3: File Management (20 seconds)**
 ```bash
 1. Go to "📁 Library" tab
 2. Click on file name → Inline editing activated
 3. Right-click file → Context menu with actions
 4. Drag file to different folder in sidebar
-5. Go to "📊 Metrics" tab → View real-time analytics
-6. Check browser console → See event logging
+5. Test inline editing of tags and filenames
+6. Try drag and drop organization
 ```
 
 ### **🎯 Advanced Demo Scenarios**
@@ -396,31 +394,6 @@ Response: {
 
 ---
 
-## 📈 Analytics & Monitoring
-
-### **Real-time Metrics Dashboard**
-
-```ascii
-┌─────────────────────────────────────────────────────────────────┐
-│                    ANALYTICS DASHBOARD                         │
-├─────────────────────────────────────────────────────────────────┤
-│  📊 User Engagement    │  🤖 AI Performance  │  💾 System Health │
-│  • Active Users: 1,247 │  • Response Time:   │  • CPU Usage: 45% │
-│  • Session Duration:   │    120ms avg        │  • Memory: 2.1GB  │
-│    12.3 min avg        │  • Accuracy: 94.2%  │  • Storage: 156MB │
-│  • Page Views: 8,943   │  • Success Rate:    │  • Uptime: 99.9%  │
-│  • Bounce Rate: 23%    │    98.7%            │  • Errors: 0.1%   │
-├─────────────────────────────────────────────────────────────────┤
-│  🎯 Feature Usage Analytics                                    │
-│  • AI Summaries: 2,341 (↑15% this week)                       │
-│  • File Uploads: 1,847 (↑8% this week)                        │
-│  • Q&A Requests: 892 (↑22% this week)                         │
-│  • Auto-Rename Acceptance: 87% (↑3% this week)                │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## 🔐 Security & Compliance
 
 ### **Security Architecture**
@@ -442,30 +415,6 @@ Response: {
 │  • Firewall Configuration  │  • Data Residency       │  • Incident Response │
 └─────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## 🚀 Roadmap & Future Enhancements
-
-### **Phase 1: Advanced AI Features (Q1 2024)**
-- [ ] **Multi-Modal AI**: Image and video content analysis
-- [ ] **Advanced RAG**: Graph-based knowledge representation
-- [ ] **Personalized Recommendations**: User behavior-based suggestions
-- [ ] **Real-time Collaboration**: Multi-user editing and commenting
-
-### **Phase 2: Enterprise Features (Q2 2024)**
-- [ ] **SSO Integration**: SAML, OAuth, and LDAP support
-- [ ] **Advanced Analytics**: Business intelligence dashboard
-- [ ] **API Gateway**: RESTful and GraphQL APIs
-- [ ] **Workflow Automation**: Custom business process automation
-
-### **Phase 3: Scale & Performance (Q3 2024)**
-- [ ] **Microservices Architecture**: Containerized service deployment
-- [ ] **Edge Computing**: Global content delivery network
-- [ ] **Machine Learning Pipeline**: Automated model training and deployment
-- [ ] **Multi-Tenant Architecture**: SaaS platform capabilities
-
----
 
 ## 🤝 Contributing & Support
 
@@ -495,20 +444,11 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 🏆 Recognition & Awards
-
-- **🏅 Best AI Product 2024**: TechCrunch Innovation Awards
-- **🥇 Excellence in UX**: Design Awards 2024
-- **🌟 Open Source Project**: GitHub Stars (2,500+)
-- **📈 Fastest Growing**: Product Hunt #1 Product of the Day
-
----
-
 <div align="center">
 
-**Built with ❤️ by the Documents Browser Team**
+**Built with ❤️ by the Documents Team**
 
-[🌐 Website](https://documents-browser.com) | [📧 Contact](mailto:hello@documents-browser.com) | [🐦 Twitter](https://twitter.com/documents_browser)
+[🌐 Website](https://hlib.work) | [📧 Linkedin](https://www.linkedin.com/in/glebaz/) | [🐦 Twitter](https://twitter.com/g1e6)
 
 ---
 

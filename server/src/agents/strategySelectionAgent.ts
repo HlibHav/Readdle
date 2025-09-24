@@ -1,4 +1,5 @@
 import { ContentAnalysisResult, ContentStructure } from './contentAnalysisAgent.js';
+import { sharedMemoryService } from '../services/sharedMemoryService.js';
 
 export interface RAGStrategy {
   name: string;
@@ -233,6 +234,12 @@ export class StrategySelectionAgent {
     const startTime = Date.now();
 
     try {
+      // Get historical performance data from shared memory
+      const historicalPerformance = await this.getHistoricalPerformance(
+        contentAnalysis.structure,
+        deviceInfo
+      );
+
       // Filter strategies based on content type and complexity
       const candidateStrategies = this.filterStrategies(
         contentAnalysis.structure,
@@ -243,12 +250,13 @@ export class StrategySelectionAgent {
         return this.getFallbackStrategy(contentAnalysis, deviceInfo);
       }
 
-      // Score and rank strategies
+      // Score and rank strategies (enhanced with historical data)
       const scoredStrategies = await this.scoreStrategies(
         candidateStrategies,
         contentAnalysis,
         deviceInfo,
-        userPreferences
+        userPreferences,
+        historicalPerformance
       );
 
       // Select best strategy
@@ -312,24 +320,28 @@ export class StrategySelectionAgent {
     strategies: RAGStrategy[],
     contentAnalysis: ContentAnalysisResult,
     deviceInfo: any,
-    userPreferences?: any
+    userPreferences?: any,
+    historicalPerformance?: any[]
   ): Promise<{ strategy: RAGStrategy; score: number }[]> {
     const scoredStrategies: { strategy: RAGStrategy; score: number }[] = [];
 
     for (const strategy of strategies) {
       let score = 0;
 
-      // Content compatibility score (0-0.4)
-      score += this.calculateContentCompatibilityScore(strategy, contentAnalysis.structure) * 0.4;
+      // Content compatibility score (0-0.3)
+      score += this.calculateContentCompatibilityScore(strategy, contentAnalysis.structure) * 0.3;
 
-      // Device compatibility score (0-0.3)
-      score += this.calculateDeviceCompatibilityScore(strategy, deviceInfo) * 0.3;
+      // Device compatibility score (0-0.25)
+      score += this.calculateDeviceCompatibilityScore(strategy, deviceInfo) * 0.25;
 
       // Performance score (0-0.2)
       score += this.calculatePerformanceScore(strategy, deviceInfo, userPreferences) * 0.2;
 
       // Accuracy score (0-0.1)
       score += this.calculateAccuracyScore(strategy, contentAnalysis) * 0.1;
+
+      // Historical performance score (0-0.15) - NEW!
+      score += this.calculateHistoricalPerformanceScore(strategy, historicalPerformance) * 0.15;
 
       scoredStrategies.push({ strategy, score });
     }
@@ -529,6 +541,62 @@ export class StrategySelectionAgent {
 
   getStrategyByName(name: string): RAGStrategy | undefined {
     return this.strategies.get(name);
+  }
+
+  /**
+   * Get historical performance data from shared memory
+   */
+  private async getHistoricalPerformance(
+    structure: ContentStructure,
+    deviceInfo: any
+  ): Promise<any[]> {
+    try {
+      const deviceType = deviceInfo.isMobile ? 'mobile' : 'desktop';
+      
+      return await sharedMemoryService.getStrategyPerformance(
+        undefined, // all strategies
+        structure.type,
+        structure.complexity,
+        deviceType
+      );
+    } catch (error) {
+      console.warn('Failed to get historical performance data:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate historical performance score for a strategy
+   */
+  private calculateHistoricalPerformanceScore(
+    strategy: RAGStrategy,
+    historicalPerformance?: any[]
+  ): number {
+    if (!historicalPerformance || historicalPerformance.length === 0) {
+      return 0.5; // Neutral score when no historical data
+    }
+
+    // Filter performance data for this strategy
+    const strategyPerformance = historicalPerformance.filter(
+      perf => perf.strategyName === strategy.name
+    );
+
+    if (strategyPerformance.length === 0) {
+      return 0.5; // Neutral score for new strategies
+    }
+
+    // Calculate average performance metrics
+    const avgLatency = strategyPerformance.reduce((sum, perf) => sum + perf.performance.actualLatency, 0) / strategyPerformance.length;
+    const avgAccuracy = strategyPerformance.reduce((sum, perf) => sum + perf.performance.actualAccuracy, 0) / strategyPerformance.length;
+    const successRate = strategyPerformance.filter(perf => perf.success).length / strategyPerformance.length;
+
+    // Normalize and score (lower latency = higher score, higher accuracy = higher score)
+    const latencyScore = Math.max(0, 1 - (avgLatency / 10000)); // Normalize to 10s max
+    const accuracyScore = avgAccuracy;
+    const successScore = successRate;
+
+    // Weighted average
+    return (latencyScore * 0.3 + accuracyScore * 0.4 + successScore * 0.3);
   }
 }
 

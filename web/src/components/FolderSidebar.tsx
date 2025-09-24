@@ -22,7 +22,7 @@ export function FolderSidebar({
   files,
 }: FolderSidebarProps) {
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
-  const { addFolder, updateFile, logEvent } = useAppStore();
+  const { addFolder, updateFile } = useAppStore();
 
   // Organize tags by count (most used first)
   const tagsWithCount = allTags.map(tag => {
@@ -59,13 +59,6 @@ export function FolderSidebar({
     
     if (fileId && folderId !== 'all') {
       updateFile(fileId, { folder: folderId });
-      
-      const folder = folders.find(f => f.id === folderId);
-      logEvent('file_moved_drag_drop', {
-        file_id: fileId,
-        folder_id: folderId,
-        folder_name: folder?.name || folderId
-      });
     }
     
     setDragOverFolder(null);

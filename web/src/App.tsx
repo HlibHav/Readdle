@@ -2,26 +2,61 @@ import { Routes, Route } from 'react-router-dom';
 import { useAppStore } from './state/store';
 import { BrowserView } from './views/BrowserView';
 import { LibraryView } from './views/LibraryView';
-import { MetricsView } from './views/MetricsView';
 import { Layout } from './components/Layout';
-import { useEffect } from 'react';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { OnboardingModal } from './components/OnboardingModal';
+import { useEffect, useState } from 'react';
 
 function App() {
-  const { logEvent } = useAppStore();
+  const { 
+    hasSeenOnboarding, 
+    isOnboardingActive, 
+    startOnboarding, 
+    completeOnboarding
+  } = useAppStore();
+  
+  const [showWelcome, setShowWelcome] = useState(!hasSeenOnboarding);
 
-  useEffect(() => {
-    // Log app initialization
-    logEvent('app_initialized');
-  }, [logEvent]);
+  const handleStartOnboarding = () => {
+    setShowWelcome(false);
+    startOnboarding();
+  };
+
+  const handleSkipOnboarding = () => {
+    setShowWelcome(false);
+    completeOnboarding();
+  };
+
+  const handleCompleteOnboarding = () => {
+    completeOnboarding();
+  };
+
+
+  // Show welcome screen for new users
+  if (showWelcome) {
+    return (
+      <WelcomeScreen
+        onStartOnboarding={handleStartOnboarding}
+        onSkipOnboarding={handleSkipOnboarding}
+      />
+    );
+  }
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<BrowserView />} />
-        <Route path="/library" element={<LibraryView />} />
-        <Route path="/metrics" element={<MetricsView />} />
-      </Routes>
-    </Layout>
+    <>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<BrowserView />} />
+          <Route path="/library" element={<LibraryView />} />
+        </Routes>
+      </Layout>
+      
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={isOnboardingActive}
+        onComplete={handleCompleteOnboarding}
+      />
+    </>
   );
 }
 

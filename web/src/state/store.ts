@@ -26,12 +26,6 @@ export interface Folder {
   color: string;
 }
 
-export interface AnalyticsEvent {
-  id: string;
-  event: string;
-  timestamp: Date;
-  data?: any;
-}
 
 export interface PageContent {
   title: string;
@@ -49,6 +43,11 @@ interface AppState {
   incognito: boolean;
   firstTimeAssistant: boolean;
   
+  // Onboarding
+  hasSeenOnboarding: boolean;
+  isOnboardingActive: boolean;
+  currentOnboardingStep: number;
+  
   // Current page
   currentPage: PageContent | null;
   isLoading: boolean;
@@ -60,9 +59,6 @@ interface AppState {
   files: FileItem[];
   folders: Folder[];
   
-  // Analytics
-  events: AnalyticsEvent[];
-  
   // Actions
   setCloudAI: (enabled: boolean) => void;
   setIncognito: (enabled: boolean) => void;
@@ -70,14 +66,21 @@ interface AppState {
   setCurrentPage: (page: PageContent | null) => void;
   setLoading: (loading: boolean) => void;
   setSelectedRAGStrategy: (strategy: string | null) => void;
+  
+  // Onboarding actions
+  setHasSeenOnboarding: (seen: boolean) => void;
+  setIsOnboardingActive: (active: boolean) => void;
+  setCurrentOnboardingStep: (step: number) => void;
+  startOnboarding: () => void;
+  completeOnboarding: () => void;
+  resetOnboarding: () => void;
+  
   addFile: (file: FileItem) => void;
   updateFile: (id: string, updates: Partial<FileItem>) => void;
   deleteFile: (id: string) => void;
   addFolder: (folder: Folder) => void;
   updateFolder: (id: string, updates: Partial<Folder>) => void;
   deleteFolder: (id: string) => void;
-  logEvent: (event: string, data?: any) => void;
-  clearEvents: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -87,6 +90,12 @@ export const useAppStore = create<AppState>()(
       cloudAI: true,
       incognito: false,
       firstTimeAssistant: true,
+      
+      // Onboarding state
+      hasSeenOnboarding: false,
+      isOnboardingActive: false,
+      currentOnboardingStep: 0,
+      
       currentPage: null,
       isLoading: false,
       selectedRAGStrategy: null,
@@ -97,7 +106,6 @@ export const useAppStore = create<AppState>()(
         { id: 'images', name: 'Images', color: '#FF9500' },
         { id: 'summaries', name: 'Summaries', color: '#9C27B0' },
       ],
-      events: [],
 
       // Actions
       setCloudAI: (enabled) => set({ cloudAI: enabled }),
@@ -106,6 +114,22 @@ export const useAppStore = create<AppState>()(
       setCurrentPage: (page) => set({ currentPage: page }),
       setLoading: (loading) => set({ isLoading: loading }),
       setSelectedRAGStrategy: (strategy) => set({ selectedRAGStrategy: strategy }),
+      
+      // Onboarding actions
+      setHasSeenOnboarding: (seen) => set({ hasSeenOnboarding: seen }),
+      setIsOnboardingActive: (active) => set({ isOnboardingActive: active }),
+      setCurrentOnboardingStep: (step) => set({ currentOnboardingStep: step }),
+      startOnboarding: () => set({ isOnboardingActive: true, currentOnboardingStep: 0 }),
+      completeOnboarding: () => set({ 
+        hasSeenOnboarding: true, 
+        isOnboardingActive: false, 
+        currentOnboardingStep: 0 
+      }),
+      resetOnboarding: () => set({ 
+        hasSeenOnboarding: false, 
+        isOnboardingActive: false, 
+        currentOnboardingStep: 0 
+      }),
       
       addFile: (file) => set((state) => {
         console.log('📁 Adding file to store:', {
@@ -145,17 +169,6 @@ export const useAppStore = create<AppState>()(
       deleteFolder: (id) => set((state) => ({
         folders: state.folders.filter(folder => folder.id !== id)
       })),
-      
-      logEvent: (event, data) => set((state) => ({
-        events: [...state.events, {
-          id: Date.now().toString(),
-          event,
-          timestamp: new Date(),
-          data
-        }]
-      })),
-      
-      clearEvents: () => set({ events: [] }),
     }),
     {
       name: 'documents-browser-storage',
@@ -164,13 +177,13 @@ export const useAppStore = create<AppState>()(
         incognito: state.incognito,
         firstTimeAssistant: state.firstTimeAssistant,
         selectedRAGStrategy: state.selectedRAGStrategy,
+        hasSeenOnboarding: state.hasSeenOnboarding,
         // Exclude PDF content from persistence to avoid localStorage overflow
         files: state.files.map(file => ({
           ...file,
           content: undefined // Remove PDF content from persisted data
         })),
         folders: state.folders,
-        events: state.events.slice(-100), // Keep only last 100 events
       }),
     }
   )

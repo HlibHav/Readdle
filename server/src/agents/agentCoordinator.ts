@@ -1,6 +1,7 @@
 import { contentAnalysisAgent, ContentAnalysisResult } from './contentAnalysisAgent.js';
 import { strategySelectionAgent, StrategySelectionResult, RAGStrategy } from './strategySelectionAgent.js';
 import { DeviceService, DeviceInfo } from '../services/deviceService.js';
+import { sharedMemoryService } from '../services/sharedMemoryService.js';
 
 export interface AgentMessage {
   id: string;
@@ -69,21 +70,45 @@ export class AgentCoordinator {
     try {
       this.log('info', `Starting agent workflow ${workflowId}`, { contentLength: content.length, question });
 
-      // Step 1: Content Analysis Agent
-      const analysisMessage = this.createMessage(
-        workflowId,
-        'coordinator',
-        'contentAnalysis',
-        'request',
-        { content, url, metadata }
-      );
-      messages.push(analysisMessage);
+      // Step 1: Check shared memory for existing content analysis
+      let contentAnalysis: ContentAnalysisResult;
+      const cachedAnalysis = await sharedMemoryService.getContentAnalysis(content);
+      
+      if (cachedAnalysis) {
+        this.log('info', `Using cached content analysis from shared memory`, { 
+          type: cachedAnalysis.structure.type,
+          complexity: cachedAnalysis.structure.complexity 
+        });
+        contentAnalysis = cachedAnalysis;
+        
+        const cacheMessage = this.createMessage(
+          workflowId,
+          'sharedMemory',
+          'coordinator',
+          'notification',
+          { source: 'content_analysis_cache', result: contentAnalysis }
+        );
+        messages.push(cacheMessage);
+      } else {
+        // Step 1: Content Analysis Agent
+        const analysisMessage = this.createMessage(
+          workflowId,
+          'coordinator',
+          'contentAnalysis',
+          'request',
+          { content, url, metadata }
+        );
+        messages.push(analysisMessage);
 
-      const contentAnalysis = await this.executeWithTimeout(
-        () => contentAnalysisAgent.analyzeContent(content, url, metadata),
-        this.config.timeoutMs,
-        'Content analysis timeout'
-      );
+        contentAnalysis = await this.executeWithTimeout(
+          () => contentAnalysisAgent.analyzeContent(content, url, metadata),
+          this.config.timeoutMs,
+          'Content analysis timeout'
+        );
+
+        // Store analysis in shared memory
+        await sharedMemoryService.storeContentAnalysis(content, contentAnalysis, url, 'contentAnalysisAgent');
+      }
 
       const analysisResponse = this.createMessage(
         workflowId,
@@ -115,11 +140,26 @@ export class AgentCoordinator {
       );
       messages.push(strategyMessage);
 
+      // Check for user preferences in shared memory
+      const userId = metadata?.userId;
+      const sessionId = metadata?.sessionId;
+      let enhancedUserPreferences = userPreferences;
+      
+      if (userId || sessionId) {
+        const storedPreferences = await sharedMemoryService.getUserPreferences(userId, sessionId);
+        if (storedPreferences) {
+          enhancedUserPreferences = {
+            ...storedPreferences.preferences,
+            ...userPreferences, // User preferences override stored ones
+          };
+        }
+      }
+
       const strategySelection = await this.executeWithTimeout(
         () => strategySelectionAgent.selectOptimalStrategy(
           contentAnalysis,
           deviceInfo,
-          userPreferences
+          enhancedUserPreferences
         ),
         this.config.timeoutMs,
         'Strategy selection timeout'
@@ -171,6 +211,25 @@ export class AgentCoordinator {
         overallConfidence,
         finalStrategy: finalStrategy.name
       });
+
+      // Store strategy performance in shared memory for learning
+      await this.storeStrategyPerformance(
+        finalStrategy,
+        contentAnalysis,
+        deviceInfo,
+        totalProcessingTime,
+        overallConfidence
+      );
+
+      // Store user preferences if provided
+      if (enhancedUserPreferences && (userId || sessionId)) {
+        await sharedMemoryService.storeUserPreferences(
+          enhancedUserPreferences,
+          userId,
+          sessionId,
+          'agentCoordinator'
+        );
+      }
 
       return result;
 
@@ -428,6 +487,37 @@ export class AgentCoordinator {
 
   getConfig(): AgentWorkflowConfig {
     return { ...this.config };
+  }
+
+  /**
+   * Store strategy performance data in shared memory
+   */
+  private async storeStrategyPerformance(
+    strategy: RAGStrategy,
+    contentAnalysis: ContentAnalysisResult,
+    deviceInfo: DeviceInfo,
+    actualProcessingTime: number,
+    actualConfidence: number
+  ): Promise<void> {
+    try {
+      const deviceType = deviceInfo.isMobile ? 'mobile' : 'desktop';
+      
+      await sharedMemoryService.storeStrategyPerformance(
+        strategy.name,
+        contentAnalysis.structure.type,
+        contentAnalysis.structure.complexity,
+        deviceType,
+        {
+          actualLatency: actualProcessingTime,
+          actualMemoryUsage: this.estimateStrategyMemory(strategy, contentAnalysis),
+          actualAccuracy: actualConfidence,
+        },
+        true, // success
+        'agentCoordinator'
+      );
+    } catch (error) {
+      this.log('warn', 'Failed to store strategy performance in shared memory', { error: error instanceof Error ? error.message : 'Unknown error' });
+    }
   }
 }
 

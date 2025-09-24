@@ -26,7 +26,7 @@ export function LibraryView() {
   const allTags = Array.from(new Set(files.flatMap(file => file.tags)));
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen" data-testid="library-view">
       {/* Sidebar */}
       <FolderSidebar
         folders={folders}

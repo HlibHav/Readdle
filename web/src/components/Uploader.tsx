@@ -16,14 +16,13 @@ export function Uploader({ onClose }: UploaderProps) {
   const [, setProcessedFiles] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { addFile, logEvent, cloudAI } = useAppStore();
+  const { addFile, cloudAI } = useAppStore();
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
     
     const fileArray = Array.from(selectedFiles);
     setFiles(prev => [...prev, ...fileArray]);
-    logEvent('download_start', { count: fileArray.length });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -86,13 +85,6 @@ export function Uploader({ onClose }: UploaderProps) {
           }
         );
 
-        logEvent('download_rename_suggested', { 
-          accepted: true, 
-          originalName: file.name, 
-          suggestedName: suggestion.suggestedName,
-          confidence: suggestion.confidence,
-          method: cloudAI ? 'langchain' : 'local'
-        });
         
         // Show post-download action prompt
         setTimeout(() => {
@@ -102,7 +94,6 @@ export function Uploader({ onClose }: UploaderProps) {
             actions.push({
               label: 'Play',
               onClick: () => {
-                logEvent('download_action_click', { action: 'play', fileId: fileObj.id });
                 window.open(fileObj.url, '_blank');
               }
             });
@@ -110,7 +101,6 @@ export function Uploader({ onClose }: UploaderProps) {
             actions.push({
               label: 'Open',
               onClick: () => {
-                logEvent('download_action_click', { action: 'open', fileId: fileObj.id });
                 window.open(fileObj.url, '_blank');
               }
             });
@@ -119,7 +109,6 @@ export function Uploader({ onClose }: UploaderProps) {
           actions.push({
             label: 'Organize',
             onClick: () => {
-              logEvent('download_action_click', { action: 'organize', fileId: fileObj.id });
               // TODO: Open organize dialog
               toast.success('Organize feature coming soon!');
             }
@@ -136,7 +125,6 @@ export function Uploader({ onClose }: UploaderProps) {
       } catch (error) {
         console.error('Upload error:', error);
         toast.error(`Failed to upload ${file.name}`);
-        logEvent('download_error', { fileName: file.name, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 

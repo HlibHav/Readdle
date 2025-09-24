@@ -23,7 +23,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
   const [actionsUsed, setActionsUsed] = useState(false);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   
-  const { cloudAI, firstTimeAssistant, setFirstTimeAssistant, selectedRAGStrategy, logEvent } = useAppStore();
+  const { cloudAI, firstTimeAssistant, setFirstTimeAssistant, selectedRAGStrategy } = useAppStore();
 
   useEffect(() => {
     if (firstTimeAssistant) {
@@ -74,8 +74,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
     setIsLoading(true);
 
     try {
-      logEvent('assistant_rag_req', { question, cloudAI });
-      
       const response = await processWithRAG(page.text, question, selectedRAGStrategy || undefined, cloudAI);
       
       const assistantMessage = {
@@ -89,12 +87,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
       setRagResult(response);
       setDeviceInfo(response.deviceInfo);
       
-      logEvent('assistant_rag_success', {
-        strategy: response.strategy,
-        confidence: response.confidence,
-        processingTime: response.processingTime,
-        sourcesCount: response.sources.length
-      });
     } catch (error) {
       console.error('RAG processing error:', error);
       
@@ -106,7 +98,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
       };
 
       setChatMessages(prev => [...prev, errorMessage]);
-      logEvent('assistant_error', { action: 'rag', error: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
       setIsLoading(false);
     }
@@ -122,8 +113,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
     setActionsUsed(true);
 
     try {
-      logEvent('assistant_summary_req', { cloudAI });
-      
       const response = await summarizeContent(page.text, cloudAI);
       
       if (response.success) {
@@ -138,17 +127,12 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
         setChatMessages(prev => [...prev, assistantMessage]);
         
         toast.success('Summary generated successfully');
-        logEvent('assistant_summary_success', { 
-          summaryLength: response.summary.length,
-          cloudAI 
-        });
       } else {
         throw new Error(response.error || 'Summary generation failed');
       }
     } catch (error) {
       console.error('Summary generation error:', error);
       toast.error('Failed to generate summary');
-      logEvent('assistant_error', { action: 'summary', error: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
       setIsLoading(false);
     }
@@ -159,8 +143,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
     setActionsUsed(true);
     
     try {
-      logEvent('assistant_translate_req', { language, cloudAI });
-      
       const response = await translateContent(page.text, language, cloudAI);
       
       if (response.success) {
@@ -173,7 +155,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
 
         setChatMessages(prev => [...prev, assistantMessage]);
         
-        logEvent('assistant_translate_success', { language, success: response.success });
         toast.success('Translation completed successfully');
       } else {
         throw new Error(response.error || 'Translation failed');
@@ -189,7 +170,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
       };
 
       setChatMessages(prev => [...prev, errorMessage]);
-      logEvent('assistant_error', { action: 'translate', error: error instanceof Error ? error.message : 'Unknown error' });
       toast.error('Translation failed');
     } finally {
       setIsLoading(false);
@@ -201,8 +181,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
     setActionsUsed(true);
     
     try {
-      logEvent('assistant_analyze_req', { cloudAI });
-      
       const response = await analyzeForInsights(page.text, cloudAI);
       
       const assistantMessage = {
@@ -214,7 +192,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
 
       setChatMessages(prev => [...prev, assistantMessage]);
       
-      logEvent('assistant_analyze_success', { success: response.success });
       toast.success('Analysis completed');
     } catch (error) {
       console.error('Analysis error:', error);
@@ -227,7 +204,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
       };
 
       setChatMessages(prev => [...prev, errorMessage]);
-      logEvent('assistant_error', { action: 'analyze', error: error instanceof Error ? error.message : 'Unknown error' });
       toast.error('Analysis failed');
     } finally {
       setIsLoading(false);
@@ -239,8 +215,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
     setActionsUsed(true);
     
     try {
-      logEvent('assistant_todos_req', { cloudAI });
-      
       const response = await createTodos(page.text, cloudAI);
       
       const assistantMessage = {
@@ -252,7 +226,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
 
       setChatMessages(prev => [...prev, assistantMessage]);
       
-      logEvent('assistant_todos_success', { success: response.success });
       toast.success('Todo list created');
     } catch (error) {
       console.error('Todo creation error:', error);
@@ -265,7 +238,6 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
       };
 
       setChatMessages(prev => [...prev, errorMessage]);
-      logEvent('assistant_error', { action: 'todos', error: error instanceof Error ? error.message : 'Unknown error' });
       toast.error('Todo creation failed');
     } finally {
       setIsLoading(false);
@@ -304,7 +276,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
   }, [chatMessages, isLoading]);
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
+    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full" data-testid="assistant-panel">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">

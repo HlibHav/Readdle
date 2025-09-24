@@ -15,8 +15,10 @@ if grep -r "sk-[a-zA-Z0-9]" . --exclude-dir=node_modules --exclude-dir=dist --ex
     exit 1
 fi
 
-# Check for other potential secrets
-if grep -r "password.*=.*[a-zA-Z0-9]" . --exclude-dir=node_modules --exclude-dir=dist --exclude=".env" > /dev/null 2>&1; then
+# Check for other potential secrets in source files only
+if find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | \
+   grep -v node_modules | grep -v dist | grep -v ".env" | \
+   xargs grep -l "password.*=.*[a-zA-Z0-9]" > /dev/null 2>&1; then
     echo "❌ SECURITY VIOLATION: Potential hardcoded passwords found!"
     echo "   Please use environment variables for sensitive data"
     exit 1

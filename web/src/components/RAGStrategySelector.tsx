@@ -34,7 +34,7 @@ export function RAGStrategySelector() {
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   
-  const { cloudAI, setCloudAI, selectedRAGStrategy, setSelectedRAGStrategy, logEvent } = useAppStore();
+  const { cloudAI, setCloudAI, selectedRAGStrategy, setSelectedRAGStrategy } = useAppStore();
 
   useEffect(() => {
     loadData();
@@ -67,12 +67,6 @@ export function RAGStrategySelector() {
         setSelectedRAGStrategy(deviceData.optimalStrategy);
       }
       
-      logEvent('rag_strategies_loaded', {
-        strategiesCount: strategiesData.strategies.length,
-        optimalStrategy: deviceData.optimalStrategy,
-        selectedStrategy: strategyToUse,
-        deviceType: deviceData.deviceInfo.isMobile ? 'mobile' : 'desktop'
-      });
     } catch (error) {
       console.error('Error loading RAG data:', error);
     } finally {
@@ -109,10 +103,6 @@ export function RAGStrategySelector() {
   const handleStrategyChange = (strategyName: string) => {
     setSelectedStrategy(strategyName);
     setSelectedRAGStrategy(strategyName);
-    logEvent('rag_strategy_changed', { 
-      strategy: strategyName,
-      deviceType: deviceInfo?.isMobile ? 'mobile' : 'desktop'
-    });
   };
 
   if (isLoading) {
@@ -127,7 +117,7 @@ export function RAGStrategySelector() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="rag-strategy-selector">
       {/* Device Info */}
       {deviceInfo && (
         <div className="p-4 bg-blue-50 rounded-lg">

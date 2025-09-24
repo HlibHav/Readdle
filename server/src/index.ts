@@ -18,6 +18,7 @@ import {
 import { translateContent } from './routes/translate.js';
 import { analyzeForInsights } from './routes/analyze.js';
 import { createTodos } from './routes/todos.js';
+import sharedMemoryRouter from './routes/sharedMemory.js';
 
 dotenv.config();
 
@@ -52,6 +53,9 @@ app.post('/todos', createTodos);
 app.post('/agent-rag/select-strategy', selectOptimalStrategy);
 app.get('/agent-rag/workflow/:workflowId', getAgentWorkflowStatus);
 app.get('/agent-rag/metrics', getAgentMetrics);
+
+// Shared Memory Routes
+app.use('/shared-memory', sharedMemoryRouter);
 
 // Health check
 app.get('/health', (req, res) => {

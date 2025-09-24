@@ -22,7 +22,7 @@ export function FileCard({ file, viewMode }: FileCardProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   
-  const { updateFile, deleteFile, logEvent, folders } = useAppStore();
+  const { updateFile, deleteFile, folders } = useAppStore();
 
   // Auto-focus input when editing starts
   useEffect(() => {
@@ -117,11 +117,6 @@ export function FileCard({ file, viewMode }: FileCardProps) {
         name: editableName.trim(),
         aiSuggested: false // User edited, so not AI suggested anymore
       });
-      logEvent('file_name_edited', {
-        file_id: file.id,
-        old_name: file.name,
-        new_name: editableName.trim()
-      });
     }
     setIsEditingName(false);
   };
@@ -147,11 +142,6 @@ export function FileCard({ file, viewMode }: FileCardProps) {
 
   const handleTagsSave = () => {
     updateFile(file.id, { tags: editableTags });
-    logEvent('file_tags_edited', {
-      file_id: file.id,
-      old_tags: file.tags,
-      new_tags: editableTags
-    });
     setIsEditingTags(false);
   };
 
@@ -182,22 +172,12 @@ export function FileCard({ file, viewMode }: FileCardProps) {
 
   const handleMoveToFolder = (folderId: string, folderName: string) => {
     updateFile(file.id, { folder: folderId });
-    logEvent('file_moved', {
-      file_id: file.id,
-      old_folder: file.folder,
-      new_folder: folderId,
-      folder_name: folderName
-    });
     setShowActions(false);
   };
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete "${file.name}"?`)) {
       deleteFile(file.id);
-      logEvent('file_deleted', {
-        file_id: file.id,
-        file_name: file.name
-      });
     }
     setShowActions(false);
   };
