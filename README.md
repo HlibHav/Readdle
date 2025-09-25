@@ -43,18 +43,16 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 
 ## 📸 Application Screenshots
 
-### **Main Interface Overview**
-*Screenshot showing the clean, modern interface with browser panel, file management, and AI assistant*
+
+### **Onboarding**
+<img width="1510" height="802" alt="image" src="https://github.com/user-attachments/assets/bb843843-e6f1-4c32-ae19-fed9d3f74692" />
 
 ### **AI-Powered Features in Action**
-*Screenshot demonstrating the assistant panel with summarization and Q&A capabilities*
+<img width="1510" height="812" alt="image" src="https://github.com/user-attachments/assets/5bd0ac10-867a-4776-8384-2474944acf3c" />
 
 ### **Smart File Management**
-*Screenshot showing drag-and-drop uploads, auto-rename suggestions, and contextual actions*
+<img width="1512" height="807" alt="image" src="https://github.com/user-attachments/assets/4c96bbdc-a88a-408f-9853-4e6244c7f2ad" />
 
-
-### **Mobile-Responsive Design**
-*Screenshot showing the application optimized for mobile and tablet devices*
 
 ---
 
