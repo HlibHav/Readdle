@@ -27,6 +27,10 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 - **Privacy by Design**: Local processing options with optional cloud AI integration
 - **Production Ready**: Comprehensive security, monitoring, and deployment automation
 
+## 📊 TL;DR Interactive Demo
+
+<iframe src="https://gamma.app/embed/7xbn9ob9fs9wzwj" style="width: 700px; max-width: 100%; height: 450px" allow="fullscreen" title="TL;DR"></iframe>
+
 ---
 
 ## 📸 Application Screenshots
