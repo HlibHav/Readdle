@@ -20,13 +20,14 @@
 - **Highlight**: "This is exactly like iOS Safari's reader mode"
 
 ### 2. AI Assistant Features (20s)
-**"Now for the magic - our AI assistant"**
+**"Now for the magic - our enhanced AI assistant"**
 
 - **Open Assistant**: Click "✨ Assistant" button
-- **Summarize**: Click "Summarize Page" → watch AI generate summary
-- **Q&A Demo**: Switch to Q&A tab, ask "What are the key points?"
+- **Summarize**: Click "Summarize Page" → watch AI generate structured summary with confidence scoring
+- **Q&A Demo**: Switch to Q&A tab, ask "Compare the main arguments and their implications?"
+- **Source Citations**: Show how AI provides source citations and confidence indicators
 - **Save Summary**: Click "Save Summary" → file appears in library
-- **Privacy Toggle**: Show Cloud AI vs Local processing
+- **Privacy Toggle**: Show Cloud AI vs Local OpenELM processing with 8 different models
 
 ### 3. Smart File Management (15s)
 **"Intelligent file organization"**

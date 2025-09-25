@@ -168,19 +168,32 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 ## 🚀 Core Features & Capabilities
 
 ### 🍎 Apple OpenELM Integration
-- **Local AI Inference**: Apple's OpenELM models (270M, 450M, 1.1B, 3B) for efficient local processing
-- **Device Optimization**: Mobile-optimized strategies with OpenELM 270M and 450M models
+- **8 Local AI Models**: Apple's OpenELM models (270M, 450M, 1.1B, 3B) in base and instruction-tuned variants
+- **6 Specialized Strategies**: 
+  - OpenELM Mobile Fast (270M Instruct) - Mobile-optimized processing
+  - OpenELM Balanced (450M Instruct) - Balanced performance and efficiency  
+  - OpenELM Comprehensive (1.1B Instruct) - Deep analysis capabilities
+  - OpenELM Advanced (3B Instruct) - Advanced local processing
+  - OpenELM PDF Specialized (450M Instruct) - PDF-optimized processing
+  - OpenELM Text Efficient (270M Base) - Efficient text processing
 - **Privacy-First**: Local inference without cloud dependencies for sensitive content
-- **Model Selection**: Intelligent strategy selection between OpenAI and OpenELM based on device capabilities
-- **Performance Tuning**: Optimized chunking and processing strategies for each OpenELM model size
+- **Intelligent Selection**: Automatic strategy selection between OpenAI and OpenELM based on device capabilities
+- **Performance Tuning**: Optimized chunking and processing strategies for each model size
 
-### 🤖 AI-Powered Document Processing
+### 🤖 Enhanced AI-Powered Document Processing
+
+#### **Advanced RAG Implementation**
+- **Multi-Pass Reasoning**: Complex query analysis with 3-stage reasoning process
+- **Quality Validation**: Automated response validation with 70-95% confidence scoring
+- **Enhanced Chunking**: Smart content-type detection with context preservation
+- **Source Citations**: Automatic source citations with relevant snippets
+- **Response Enhancement**: Structured responses with confidence indicators
 
 #### **Intelligent Content Analysis**
-- **Advanced RAG Implementation**: Multi-layered retrieval augmented generation
-- **Context-Aware Processing**: Understanding document context and user intent
+- **Context-Aware Processing**: Enhanced prompts with strategy-specific enhancements
 - **Multi-Modal Analysis**: Text, metadata, and structural content processing
-- **Real-time Summarization**: Instant content summaries with confidence scoring
+- **Real-time Summarization**: Instant content summaries with quality assessment
+- **Complex Query Handling**: Multi-part questions, comparisons, and analysis tasks
 
 #### **Smart File Management**
 - **AI-Powered Naming**: Intelligent filename suggestions based on content analysis
@@ -396,12 +409,26 @@ export HUGGINGFACE_API_KEY=your_huggingface_api_key
 # Get OpenELM service status
 GET /api/openelm/status
 
-# Get available OpenELM models
+# Get available OpenELM models (8 models available)
 GET /api/openelm/models?profile=balanced
 
-# Get OpenELM strategies
-GET /api/openelm/strategies?deviceOptimized=true
+# Get OpenELM strategies (6 specialized strategies)
+GET /api/openelm/strategies?deviceOptimized=true&profile=fast
 ```
+
+#### **Available Models**
+- **270M Models**: `openelm-270m`, `openelm-270m-instruct`
+- **450M Models**: `openelm-450m`, `openelm-450m-instruct`  
+- **1.1B Models**: `openelm-1b`, `openelm-1b-instruct`
+- **3B Models**: `openelm-3b`, `openelm-3b-instruct`
+
+#### **Available Strategies**
+- **OpenELM Mobile Fast**: 270M Instruct for mobile devices
+- **OpenELM Balanced**: 450M Instruct for balanced performance
+- **OpenELM Comprehensive**: 1.1B Instruct for deep analysis
+- **OpenELM Advanced**: 3B Instruct for advanced processing
+- **OpenELM PDF Specialized**: 450M Instruct for PDF documents
+- **OpenELM Text Efficient**: 270M Base for efficient text processing
 
 #### **Text Generation**
 ```bash

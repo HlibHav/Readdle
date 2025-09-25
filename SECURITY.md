@@ -8,6 +8,10 @@
 - Use environment variables in production
 - Follow the principle of least privilege
 
+### Required API Keys
+- **OpenAI API Key**: Required for cloud AI processing and advanced features
+- **Hugging Face API Key**: Required for Apple OpenELM model access and local processing
+
 ### Setup Instructions
 
 1. **Copy the example environment file:**
@@ -15,10 +19,11 @@
    cp server/env.example server/.env
    ```
 
-2. **Add your OpenAI API key:**
+2. **Add your API keys:**
    ```bash
    # Edit server/.env
-   OPENAI_API_KEY=your_actual_api_key_here
+   OPENAI_API_KEY=your_actual_openai_api_key_here
+   HUGGINGFACE_API_KEY=your_actual_huggingface_api_key_here
    ```
 
 3. **Verify your setup:**
@@ -107,6 +112,20 @@ If you accidentally commit sensitive data:
 4. **Generate new API keys**
 5. **Update all environments with new keys**
 
+## 🔒 Data Privacy & Security
+
+### Local Processing with OpenELM
+- **Apple OpenELM Models**: 8 local AI models for complete privacy
+- **No Data Transmission**: Local processing ensures data never leaves the device
+- **Hugging Face Integration**: Secure model loading with API key authentication
+- **Device Optimization**: Models automatically selected based on device capabilities
+
+### Cloud AI Processing
+- **Optional Cloud AI**: Users can choose between cloud and local processing
+- **Data Control**: When using cloud processing, data is processed by OpenAI
+- **Transparent Processing**: Clear indication of where data is processed
+- **API Key Security**: All API keys stored securely in environment variables
+
 ## 🔒 Additional Security Measures
 
 ### Rate Limiting
@@ -120,3 +139,8 @@ CORS is properly configured to prevent unauthorized cross-origin requests.
 
 ### Error Handling
 Sensitive error information is not exposed to clients in production.
+
+### Enhanced RAG Security
+- **Quality Validation**: Automated response validation prevents low-quality outputs
+- **Source Citations**: All responses include source attribution for transparency
+- **Confidence Scoring**: Response confidence levels help users assess reliability

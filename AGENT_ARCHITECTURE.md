@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project now includes a **lightweight multi-agent system** that intelligently analyzes content structure and selects optimal RAG (Retrieval-Augmented Generation) strategies. The agents work collaboratively to provide better content understanding and processing decisions.
+This project features an **advanced multi-agent system** with enhanced RAG (Retrieval-Augmented Generation) capabilities that intelligently analyzes content structure and selects optimal processing strategies. The system now includes comprehensive quality validation, multi-pass reasoning, and Apple OpenELM integration for local AI processing.
 
 ## 🎯 Why Multi-Agents Here?
 
@@ -16,10 +16,14 @@ You asked: *"do i need multiagents here?"*
 - **Device constraints matter**: Mobile vs desktop, memory vs speed trade-offs
 - **Manual strategy selection is error-prone**: Developers can't predict optimal chunking for every content type
 
-### The Agent Solution:
-- **Content Analysis Agent**: Analyzes document structure, type, complexity
-- **Strategy Selection Agent**: Chooses optimal chunking and embedding strategy
+### The Enhanced Agent Solution:
+- **Content Analysis Agent**: Analyzes document structure, type, complexity with enhanced metrics
+- **Strategy Selection Agent**: Chooses optimal chunking and embedding strategy from 17+ strategies
 - **Agent Coordinator**: Orchestrates the workflow and handles fallbacks
+- **Quality Validation**: Automated response validation with confidence scoring
+- **Multi-Pass Reasoning**: Complex query handling with 3-stage reasoning process
+- **Source Citation**: Automatic source citations with relevant snippets
+- **Apple OpenELM Integration**: 8 local AI models with 6 specialized strategies
 
 ## 🏗️ Architecture
 
