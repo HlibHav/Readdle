@@ -29,7 +29,15 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 
 ## 📊 TL;DR Interactive Demo
 
-<iframe src="https://gamma.app/embed/7xbn9ob9fs9wzwj" style="width: 700px; max-width: 100%; height: 450px" allow="fullscreen" title="TL;DR"></iframe>
+<div align="center">
+
+[![TL;DR](https://img.shields.io/badge/📊_View_Interactive_Demo-blue?style=for-the-badge&logo=gamma)](https://gamma.app/docs/7xbn9ob9fs9wzwj)
+
+**🎯 [Click here to view the interactive TL;DR demo](https://gamma.app/docs/7xbn9ob9fs9wzwj)**
+
+*Experience our AI-powered document management platform through this interactive presentation*
+
+</div>
 
 ---
 
