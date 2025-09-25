@@ -588,6 +588,70 @@ export class RAGService {
     }
   }
 
+  private getStrategySpecificPromptEnhancement(strategy: AgentRAGStrategy): string {
+    const enhancements: Record<string, string> = {
+      'HTML Comprehensive Analysis': `
+## Specialized Approach for HTML Content:
+- Focus on structural elements, semantic meaning, and content hierarchy
+- Extract key information from headings, lists, and data tables
+- Identify important links, navigation elements, and interactive components
+- Analyze content organization and user experience implications`,
+
+      'PDF Document Processing': `
+## Specialized Approach for PDF Documents:
+- Extract and analyze text content while preserving document structure
+- Identify sections, subsections, and document flow
+- Focus on key findings, conclusions, and actionable insights
+- Pay attention to formatting cues that indicate importance`,
+
+      'Mobile Optimized': `
+## Specialized Approach for Mobile Content:
+- Prioritize concise, scannable information delivery
+- Focus on key points and essential details
+- Optimize for quick comprehension and mobile reading patterns
+- Emphasize actionable insights and practical takeaways`,
+
+      'Fast Processing': `
+## Specialized Approach for Quick Analysis:
+- Provide immediate, high-level insights and key findings
+- Focus on the most important and relevant information
+- Deliver concise summaries with essential details
+- Prioritize speed without sacrificing accuracy`,
+
+      'Balanced Analysis': `
+## Specialized Approach for Balanced Processing:
+- Provide comprehensive coverage with appropriate detail level
+- Balance thoroughness with readability
+- Include both high-level insights and supporting details
+- Ensure complete coverage of the question while maintaining clarity`,
+
+      'Comprehensive Analysis': `
+## Specialized Approach for Deep Analysis:
+- Provide exhaustive coverage of all relevant aspects
+- Include detailed explanations, examples, and context
+- Analyze implications, connections, and broader significance
+- Deliver thorough insights with comprehensive supporting evidence`
+    };
+
+    // Check for OpenELM strategies
+    if (strategy.llmProvider === 'openelm') {
+      return `
+## Specialized OpenELM Approach:
+- Leverage Apple's efficient language model for ${strategy.performanceProfile} performance
+- Optimize for ${strategy.llmModel} model capabilities and constraints
+- Focus on local processing advantages and device optimization
+- Provide efficient, high-quality responses tailored to the model's strengths`;
+    }
+
+    // Return enhancement based on strategy name or fallback
+    return enhancements[strategy.name] || `
+## Specialized Approach:
+- Apply ${strategy.name} methodology for optimal results
+- Focus on ${strategy.contentTypes.join(', ')} content types
+- Optimize for ${strategy.performanceProfile} performance requirements
+- Tailor analysis to ${strategy.complexityLevels.join(', ')} complexity levels`;
+  }
+
   private async generateAnswerWithAgentStrategy(
     question: string,
     sources: Document[],
@@ -598,24 +662,52 @@ export class RAGService {
     }
 
     const context = sources.map(doc => doc.pageContent).join('\n\n');
+    const sourceCount = sources.length;
+    
+    // Create strategy-specific prompt enhancements
+    const strategyEnhancement = this.getStrategySpecificPromptEnhancement(agentStrategy);
     
     const prompt = `
-You are a helpful assistant that answers questions based on the provided context. 
-Use only the information from the context to answer the question. Provide a complete, detailed answer.
+You are an expert AI assistant specialized in ${agentStrategy.name}. You excel at ${agentStrategy.description}.
 
-Context: ${context}
+## Your Expertise:
+- **Strategy**: ${agentStrategy.name}
+- **Focus**: ${agentStrategy.description}
+- **Performance Profile**: ${agentStrategy.performanceProfile}
+- **Content Types**: ${agentStrategy.contentTypes.join(', ')}
+- **Complexity Levels**: ${agentStrategy.complexityLevels.join(', ')}
 
-Question: ${question}
+${strategyEnhancement}
 
-Answer the question based on the context. Provide a comprehensive answer that fully addresses the question. If the answer is not in the context, say "I don't have enough information to answer this question."
+## Instructions:
+1. **Analyze thoroughly**: Examine all provided context with your specialized expertise
+2. **Apply strategy**: Use your ${agentStrategy.name} approach to provide the most relevant answer
+3. **Be comprehensive**: Address all aspects of the question using your specialized knowledge
+4. **Structure clearly**: Organize your response with clear sections and formatting
+5. **Cite sources**: Reference specific parts of the context that support your answer
+6. **Optimize for profile**: Tailor your response for ${agentStrategy.performanceProfile} performance
+7. **Acknowledge limitations**: State clearly if information is missing or incomplete
 
-Answer:
+## Context (${sourceCount} source${sourceCount !== 1 ? 's' : ''}):
+${context}
+
+## Question:
+${question}
+
+## Response Format:
+Provide a specialized answer that includes:
+- **Direct Answer**: A clear response tailored to your ${agentStrategy.name} expertise
+- **Supporting Details**: Relevant facts and examples from the context
+- **Strategic Insights**: Analysis based on your specialized approach
+- **Confidence Assessment**: Your evaluation of answer completeness and reliability
+
+## Answer:
 `;
 
     const llm = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
+      modelName: 'gpt-4o-mini', // Use better model for improved quality
       temperature: 0.1,
-      maxTokens: Math.max(agentStrategy.maxTokens, 500),
+      maxTokens: Math.max(agentStrategy.maxTokens, 800), // Increase token limit for better responses
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
@@ -625,13 +717,25 @@ Answer:
     const llmLatency = Date.now() - llmStartTime;
     const answer = typeof result.content === 'string' ? result.content : '';
 
+    // Check if this is a complex query that needs multi-pass reasoning
+    const isComplex = this.isComplexQuery(question);
+    
+    let finalAnswer = answer;
+    if (isComplex) {
+      // Use multi-pass reasoning for complex queries
+      finalAnswer = await this.performMultiPassReasoning(question, sources, agentStrategy);
+    } else {
+      // Use single-pass with validation for simple queries
+      finalAnswer = await this.enhanceAnswerWithValidation(answer, question, sources);
+    }
+
     // Instrument with Phoenix
     phoenixInstrumentation.createLLMSpan(
-      'gpt-3.5-turbo',
+      'gpt-4o-mini',
       'agent_rag_answer_generation',
       prompt,
-      answer,
-      { prompt: prompt.length, completion: answer.length },
+      finalAnswer,
+      { prompt: prompt.length, completion: finalAnswer.length },
       llmLatency,
       {
         operation_type: 'agent_rag_answer_generation',
@@ -643,21 +747,197 @@ Answer:
       }
     );
 
-    return answer;
+    // Add source citations and confidence indicators
+    const answerWithCitations = this.addSourceCitations(finalAnswer, sources);
+    
+    return answerWithCitations;
   }
 
   private async chunkContent(content: string, strategy: RAGStrategy): Promise<Document[]> {
+    // Enhanced chunking with better context preservation
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: strategy.chunkSize,
-      chunkOverlap: strategy.chunkOverlap,
-      separators: ['\n\n', '\n', '. ', '! ', '? ', ' ', ''],
+      chunkOverlap: Math.max(strategy.chunkOverlap, strategy.chunkSize * 0.2), // Ensure at least 20% overlap
+      separators: this.getEnhancedSeparators(content),
+      keepSeparator: true, // Preserve separators for better context
     });
 
     const chunks = await splitter.splitDocuments([
       new Document({ pageContent: content })
     ]);
 
-    return chunks;
+    // Post-process chunks to enhance context
+    return this.enhanceChunksWithContext(chunks, content);
+  }
+
+  private getEnhancedSeparators(content: string): string[] {
+    // Detect content type and adjust separators accordingly
+    const isHTML = /<[^>]+>/.test(content);
+    const isStructured = /\n\s*\d+\.|\n\s*[-*+]|\|\s*\w+/.test(content);
+    const hasSections = /#{1,6}\s+\w+|Chapter|Section|Part/i.test(content);
+    
+    if (isHTML) {
+      return [
+        '</div>', '</section>', '</article>', '</main>', '</header>', '</footer>',
+        '</p>', '</h1>', '</h2>', '</h3>', '</h4>', '</h5>', '</h6>',
+        '</ul>', '</ol>', '</li>', '</table>', '</tr>', '</td>', '</th>',
+        '\n\n', '\n', '. ', '! ', '? ', '; ', ', ', ' ', ''
+      ];
+    } else if (hasSections) {
+      return [
+        '\n\n\n', '\n\n', '\n', '. ', '! ', '? ', '; ', ', ', ' ', ''
+      ];
+    } else if (isStructured) {
+      return [
+        '\n\n', '\n', '. ', '! ', '? ', '; ', ', ', ' ', ''
+      ];
+    } else {
+      return [
+        '\n\n', '\n', '. ', '! ', '? ', '; ', ', ', ' ', ''
+      ];
+    }
+  }
+
+  private enhanceChunksWithContext(chunks: Document[], originalContent: string): Document[] {
+    return chunks.map((chunk, index) => {
+      const enhancedContent = this.addContextualInformation(chunk.pageContent, originalContent, index, chunks.length);
+      return new Document({ 
+        pageContent: enhancedContent,
+        metadata: {
+          ...chunk.metadata,
+          chunkIndex: index,
+          totalChunks: chunks.length,
+          hasContext: true
+        }
+      });
+    });
+  }
+
+  private addContextualInformation(chunkContent: string, originalContent: string, chunkIndex: number, totalChunks: number): string {
+    let enhanced = chunkContent;
+    
+    // Add section context if available
+    const sectionMatch = chunkContent.match(/(?:#{1,6}|Chapter|Section|Part)\s+([^\n]+)/i);
+    if (sectionMatch) {
+      enhanced = `[Section: ${sectionMatch[1]}]\n${enhanced}`;
+    }
+    
+    // Add position context
+    const position = chunkIndex === 0 ? 'beginning' : 
+                    chunkIndex === totalChunks - 1 ? 'end' : 
+                    'middle';
+    enhanced = `[Position: ${position} of document]\n${enhanced}`;
+    
+    // Add content type hints
+    if (/<[^>]+>/.test(chunkContent)) {
+      enhanced = `[Content Type: HTML]\n${enhanced}`;
+    } else if (/\n\s*\d+\.|\n\s*[-*+]/.test(chunkContent)) {
+      enhanced = `[Content Type: Structured List]\n${enhanced}`;
+    } else if (/\|\s*\w+/.test(chunkContent)) {
+      enhanced = `[Content Type: Table/Grid]\n${enhanced}`;
+    }
+    
+    return enhanced;
+  }
+
+  private async validateResponseQuality(answer: string, question: string, sources: Document[]): Promise<{
+    score: number;
+    issues: string[];
+    suggestions: string[];
+  }> {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+    let score = 1.0;
+
+    // Check for basic quality indicators
+    if (answer.length < 50) {
+      issues.push('Answer is too short');
+      suggestions.push('Provide more detailed explanation');
+      score -= 0.3;
+    }
+
+    if (answer.includes("I don't have enough information") || answer.includes("I cannot answer")) {
+      issues.push('Answer indicates insufficient information');
+      suggestions.push('Check if more context is needed');
+      score -= 0.4;
+    }
+
+    // Check for question addressing
+    const questionWords = question.toLowerCase().split(/\s+/);
+    const answerWords = answer.toLowerCase();
+    const addressedWords = questionWords.filter(word => 
+      word.length > 3 && answerWords.includes(word)
+    );
+    const addressRatio = addressedWords.length / questionWords.length;
+    
+    if (addressRatio < 0.3) {
+      issues.push('Answer may not fully address the question');
+      suggestions.push('Ensure all aspects of the question are covered');
+      score -= 0.2;
+    }
+
+    // Check for source utilization
+    const sourceText = sources.map(s => s.pageContent).join(' ').toLowerCase();
+    const answerText = answer.toLowerCase();
+    const sourceWords = sourceText.split(/\s+/).filter(word => word.length > 4);
+    const utilizedWords = sourceWords.filter(word => answerText.includes(word));
+    const utilizationRatio = utilizedWords.length / Math.min(sourceWords.length, 100); // Cap at 100 words
+    
+    if (utilizationRatio < 0.1) {
+      issues.push('Answer may not be based on provided sources');
+      suggestions.push('Better utilize information from the context');
+      score -= 0.3;
+    }
+
+    // Check for structure and clarity
+    const hasStructure = /^#{1,6}\s+|^[\*\-\+]\s+|^\d+\.\s+|\*\*.*\*\*|##|###/.test(answer);
+    if (!hasStructure && answer.length > 200) {
+      suggestions.push('Consider adding structure with headers, bullets, or formatting');
+    }
+
+    // Check for confidence indicators
+    const hasConfidence = /confidence|certain|definite|clear|obvious/i.test(answer);
+    const hasUncertainty = /might|could|possibly|perhaps|maybe|unclear/i.test(answer);
+    
+    if (hasUncertainty && !hasConfidence) {
+      suggestions.push('Consider providing confidence indicators');
+    }
+
+    return {
+      score: Math.max(0, Math.min(1, score)),
+      issues,
+      suggestions
+    };
+  }
+
+  private async enhanceAnswerWithValidation(
+    originalAnswer: string, 
+    question: string, 
+    sources: Document[]
+  ): Promise<string> {
+    const validation = await this.validateResponseQuality(originalAnswer, question, sources);
+    
+    if (validation.score >= 0.8) {
+      return originalAnswer;
+    }
+
+    // If quality is low, add enhancement
+    let enhancedAnswer = originalAnswer;
+    
+    if (validation.issues.length > 0) {
+      enhancedAnswer += `\n\n---\n**Quality Assessment:**\n`;
+      enhancedAnswer += `- **Confidence Score**: ${(validation.score * 100).toFixed(0)}%\n`;
+      
+      if (validation.issues.length > 0) {
+        enhancedAnswer += `- **Areas for Improvement**: ${validation.issues.join(', ')}\n`;
+      }
+      
+      if (validation.suggestions.length > 0) {
+        enhancedAnswer += `- **Suggestions**: ${validation.suggestions.join(', ')}\n`;
+      }
+    }
+
+    return enhancedAnswer;
   }
 
   private async getVectorStore(strategyName: string, chunks: Document[]): Promise<any> {
@@ -706,24 +986,40 @@ Answer:
     }
 
     const context = sources.map(doc => doc.pageContent).join('\n\n');
+    const sourceCount = sources.length;
     
     const prompt = `
-You are a helpful assistant that answers questions based on the provided context. 
-Use only the information from the context to answer the question. Provide a complete, detailed answer.
+You are an expert research assistant with deep analytical capabilities. Your task is to provide comprehensive, accurate, and well-structured answers based on the provided context.
 
-Context: ${context}
+## Instructions:
+1. **Analyze thoroughly**: Carefully examine all provided context to understand the full scope of information
+2. **Be comprehensive**: Address all aspects of the question, including relevant details, implications, and context
+3. **Be accurate**: Only use information explicitly stated in the context - do not infer or assume additional facts
+4. **Structure clearly**: Organize your response with clear sections, bullet points, or numbered lists when appropriate
+5. **Cite sources**: When possible, reference which part of the context supports your answer
+6. **Be confident**: If the information is clearly present, provide a definitive answer
+7. **Acknowledge limitations**: If the context is incomplete or unclear, explicitly state what information is missing
 
-Question: ${question}
+## Context (${sourceCount} source${sourceCount !== 1 ? 's' : ''}):
+${context}
 
-Answer the question based on the context. Provide a comprehensive answer that fully addresses the question. If the answer is not in the context, say "I don't have enough information to answer this question."
+## Question:
+${question}
 
-Answer:
+## Response Format:
+Provide a well-structured answer that includes:
+- **Direct Answer**: A clear, concise response to the main question
+- **Supporting Details**: Relevant facts, examples, or explanations from the context
+- **Additional Context**: Any related information that helps understand the answer
+- **Confidence Level**: Your assessment of how complete and reliable the answer is
+
+## Answer:
 `;
 
     const llm = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
+      modelName: 'gpt-4o-mini', // Use better model for improved quality
       temperature: 0.1,
-      maxTokens: Math.max(strategy.maxTokens, 500), // Ensure we have enough tokens for complete answers
+      maxTokens: Math.max(strategy.maxTokens, 800), // Increase token limit for better responses
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
@@ -733,13 +1029,25 @@ Answer:
     const llmLatency = Date.now() - llmStartTime;
     const answer = typeof result.content === 'string' ? result.content : '';
 
+    // Check if this is a complex query that needs multi-pass reasoning
+    const isComplex = this.isComplexQuery(question);
+    
+    let finalAnswer = answer;
+    if (isComplex) {
+      // Use multi-pass reasoning for complex queries
+      finalAnswer = await this.performMultiPassReasoning(question, sources, strategy);
+    } else {
+      // Use single-pass with validation for simple queries
+      finalAnswer = await this.enhanceAnswerWithValidation(answer, question, sources);
+    }
+
     // Instrument with Phoenix
     phoenixInstrumentation.createLLMSpan(
-      'gpt-3.5-turbo',
+      'gpt-4o-mini',
       'rag_answer_generation',
       prompt,
-      answer,
-      { prompt: prompt.length, completion: answer.length },
+      finalAnswer,
+      { prompt: prompt.length, completion: finalAnswer.length },
       llmLatency,
       {
         operation_type: 'rag_answer_generation',
@@ -750,7 +1058,211 @@ Answer:
       }
     );
 
-    return answer;
+    // Add source citations and confidence indicators
+    const answerWithCitations = this.addSourceCitations(finalAnswer, sources);
+    
+    return answerWithCitations;
+  }
+
+  private addSourceCitations(answer: string, sources: Document[]): string {
+    if (sources.length === 0) {
+      return answer;
+    }
+
+    // Calculate confidence score
+    const confidenceScore = this.calculateConfidence(sources, answer);
+    
+    // Add confidence indicator
+    let enhancedAnswer = answer;
+    
+    // Add source citations section
+    enhancedAnswer += `\n\n---\n**Sources & Confidence**\n`;
+    enhancedAnswer += `**Confidence Level**: ${(confidenceScore * 100).toFixed(0)}%\n\n`;
+    
+    if (sources.length > 0) {
+      enhancedAnswer += `**Sources Used** (${sources.length} reference${sources.length !== 1 ? 's' : ''}):\n`;
+      
+      sources.forEach((source, index) => {
+        const snippet = this.extractRelevantSnippet(source.pageContent, answer);
+        enhancedAnswer += `\n**Source ${index + 1}**: ${snippet}\n`;
+      });
+    }
+
+    return enhancedAnswer;
+  }
+
+  private extractRelevantSnippet(sourceContent: string, answer: string): string {
+    // Find the most relevant sentence or phrase from the source
+    const sentences = sourceContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    
+    if (sentences.length === 0) {
+      return sourceContent.substring(0, 100) + '...';
+    }
+
+    // Find sentence with most word overlap with answer
+    let bestSentence = sentences[0];
+    let maxOverlap = 0;
+
+    const answerWords = answer.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    
+    sentences.forEach(sentence => {
+      const sentenceWords = sentence.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const overlap = answerWords.filter(word => sentenceWords.includes(word)).length;
+      
+      if (overlap > maxOverlap) {
+        maxOverlap = overlap;
+        bestSentence = sentence;
+      }
+    });
+
+    // Truncate if too long
+    if (bestSentence.length > 150) {
+      bestSentence = bestSentence.substring(0, 147) + '...';
+    }
+
+    return bestSentence.trim();
+  }
+
+  private async performMultiPassReasoning(
+    question: string,
+    sources: Document[],
+    strategy: RAGStrategy
+  ): Promise<string> {
+    // Detect if this is a complex query that would benefit from multi-pass reasoning
+    const isComplexQuery = this.isComplexQuery(question);
+    
+    if (!isComplexQuery) {
+      // Use single-pass for simple queries
+      return this.generateAnswer(question, sources, strategy);
+    }
+
+    console.log('🤔 Performing multi-pass reasoning for complex query...');
+
+    // Pass 1: Initial analysis and breakdown
+    const analysisPrompt = `
+You are an expert analyst. Break down this complex question into its key components and identify what information is needed to provide a comprehensive answer.
+
+Question: ${question}
+
+Provide:
+1. **Key Components**: What are the main parts of this question?
+2. **Information Needs**: What specific information is required?
+3. **Analysis Approach**: How should this be approached systematically?
+4. **Sub-questions**: What specific sub-questions should be addressed?
+
+Be concise but thorough.
+`;
+
+    const analysisLLM = new ChatOpenAI({
+      modelName: 'gpt-4o-mini',
+      temperature: 0.1,
+      maxTokens: 400,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const analysisResult = await analysisLLM.invoke(analysisPrompt);
+    const analysis = analysisResult.content as string;
+
+    // Pass 2: Detailed answer generation with analysis context
+    const context = sources.map(doc => doc.pageContent).join('\n\n');
+    
+    const detailedPrompt = `
+Based on the analysis below, provide a comprehensive answer to the complex question.
+
+## Analysis:
+${analysis}
+
+## Context:
+${context}
+
+## Question:
+${question}
+
+## Instructions:
+1. Use the analysis to structure your response systematically
+2. Address each component identified in the analysis
+3. Provide detailed explanations with supporting evidence
+4. Include connections and relationships between different aspects
+5. Conclude with a synthesized summary
+
+Provide a thorough, well-structured response:
+`;
+
+    const detailedLLM = new ChatOpenAI({
+      modelName: 'gpt-4o-mini',
+      temperature: 0.1,
+      maxTokens: 1200, // More tokens for complex responses
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const detailedResult = await detailedLLM.invoke(detailedPrompt);
+    const detailedAnswer = detailedResult.content as string;
+
+    // Pass 3: Quality review and refinement
+    const reviewPrompt = `
+Review this answer for a complex question and suggest improvements if needed.
+
+## Original Question:
+${question}
+
+## Generated Answer:
+${detailedAnswer}
+
+## Analysis Used:
+${analysis}
+
+Review the answer for:
+1. **Completeness**: Does it address all aspects of the question?
+2. **Accuracy**: Is the information correct and well-supported?
+3. **Clarity**: Is it well-structured and easy to understand?
+4. **Depth**: Does it provide sufficient detail and insight?
+
+If the answer is already high quality, provide a brief confirmation. If improvements are needed, suggest specific enhancements.
+
+Response:
+`;
+
+    const reviewLLM = new ChatOpenAI({
+      modelName: 'gpt-4o-mini',
+      temperature: 0.1,
+      maxTokens: 300,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const reviewResult = await reviewLLM.invoke(reviewPrompt);
+    const review = reviewResult.content as string;
+
+    // Combine results
+    let finalAnswer = detailedAnswer;
+    
+    if (review.toLowerCase().includes('improvement') || review.toLowerCase().includes('suggest')) {
+      finalAnswer += `\n\n---\n**Quality Review**: ${review}`;
+    }
+
+    return finalAnswer;
+  }
+
+  private isComplexQuery(question: string): boolean {
+    const complexIndicators = [
+      // Multi-part questions
+      /\?.*\?/,
+      /and|or|but|however|although|while|whereas/i,
+      // Comparison questions
+      /compare|contrast|difference|similarity|versus|vs/i,
+      // Analysis questions
+      /analyze|explain|discuss|evaluate|assess|examine/i,
+      // Complex temporal or conditional
+      /if.*then|when.*then|depending on|based on/i,
+      // Multiple topics
+      /\b(?:what|how|why|when|where).*\b(?:what|how|why|when|where)/i,
+      // Long questions (>50 words)
+      question.split(/\s+/).length > 50
+    ];
+
+    return complexIndicators.some(indicator => {
+      if (typeof indicator === 'boolean') return indicator;
+      return indicator.test(question);
+    });
   }
 
   private calculateConfidence(sources: Document[], answer: string): number {
