@@ -41,6 +41,16 @@ Agent Coordinator
 Final Strategy Selection
      ↓
 Enhanced RAG Processing
+     ↓
+┌─────────────────────────────────────┐
+│     Phoenix AI Observability       │
+│                                     │
+│ • LLM Span Tracing                  │
+│ • RAG Operation Monitoring          │
+│ • Agent Workflow Visibility         │
+│ • Performance Analytics             │
+│ • Real-time Dashboard               │
+└─────────────────────────────────────┘
 ```
 
 ## 🤖 Agents
@@ -107,6 +117,25 @@ Enhanced RAG Processing
 - **Error Handling**: Fallback strategies when agents fail
 - **Performance Monitoring**: Tracks processing times and success rates
 - **Configuration Management**: Adjustable timeouts, retries, logging
+- **Phoenix Integration**: Automatic tracing of all agent operations
+
+### 4. Phoenix AI Observability Integration
+
+**Purpose**: Provides comprehensive observability for all AI operations
+
+**Capabilities**:
+- **LLM Span Tracing**: Complete visibility into OpenAI API calls
+- **RAG Operation Monitoring**: Retrieval and generation process tracking
+- **Agent Workflow Visibility**: Multi-agent orchestration monitoring
+- **Performance Analytics**: Latency, token usage, and cost tracking
+- **Real-time Dashboard**: Live monitoring via Phoenix UI (http://localhost:6006)
+
+**Tracing Coverage**:
+- ✅ **Real User Interactions**: All chat, RAG, and LLM operations
+- ✅ **Agent Workflows**: Content analysis and strategy selection
+- ✅ **LLM Operations**: Token usage, latency, and model performance
+- ✅ **RAG Processing**: Retrieval strategies and generation quality
+- ✅ **Error Tracking**: Failed operations and fallback activations
 
 ## 🚀 API Endpoints
 
@@ -178,6 +207,18 @@ GET /agent-rag/metrics
 GET /agent-rag/workflow/{workflowId}
 ```
 
+### Phoenix AI Observability
+```bash
+GET /phoenix/status
+# Check Phoenix observability status and configuration
+
+POST /phoenix/test
+# Generate test traces for Phoenix validation
+
+# Phoenix UI: http://localhost:6006
+# OTLP Endpoint: http://localhost:4317 (gRPC)
+```
+
 ## 📊 Performance Benefits
 
 ### Before (Single Strategy):
@@ -198,6 +239,7 @@ GET /agent-rag/workflow/{workflowId}
 - **Speed**: +40% faster for mobile devices (optimized strategies)
 - **Memory**: +60% reduction for mobile (memory-efficient chunking)
 - **User Experience**: Transparent optimization without manual configuration
+- **Observability**: 100% visibility into all AI operations via Phoenix
 
 ## 🔧 Configuration
 
@@ -223,6 +265,20 @@ GET /agent-rag/workflow/{workflowId}
 - Adjust performance scoring weights
 - Customize device optimization rules
 - Add user preference handling
+
+### Phoenix Observability Configuration:
+```typescript
+{
+  enabled: true,
+  projectName: "documents-browser-app",
+  collectorEndpoint: "http://localhost:4317",
+  apiKey: "your_phoenix_api_key",
+  traceLevel: "detailed", // basic, detailed, debug
+  enableLLMTracing: true,
+  enableRAGTracing: true,
+  enableAgentTracing: true
+}
+```
 
 ## 🧪 Testing the Agent System
 
@@ -271,12 +327,31 @@ GET /agent-rag/workflow/{workflowId}
 GET /agent-rag/metrics
 ```
 
+### Phoenix AI Observability:
+```bash
+# Check Phoenix status
+GET /phoenix/status
+
+# Generate test traces
+POST /phoenix/test
+
+# Access Phoenix UI
+open http://localhost:6006
+```
+
 ### Logs:
 The system provides detailed logging at different levels:
 - **Debug**: Detailed agent communication
 - **Info**: Workflow progress and decisions
 - **Warn**: Fallback activations
 - **Error**: Agent failures and exceptions
+
+### Phoenix Tracing:
+- **LLM Spans**: Complete OpenAI API call visibility
+- **RAG Spans**: Retrieval and generation process tracking
+- **Agent Spans**: Multi-agent workflow monitoring
+- **Workflow Spans**: End-to-end request tracing
+- **Performance Metrics**: Latency, token usage, confidence scores
 
 ## 🚀 Future Enhancements
 
@@ -302,5 +377,18 @@ The multi-agent system transforms your RAG pipeline from a "one-size-fits-all" a
 - **Provides transparency** into decision-making process
 - **Gracefully handles failures** with fallback mechanisms
 - **Optimizes performance** for different use cases
+- **Offers complete observability** through Phoenix AI monitoring
 
-This is exactly what you wanted: **agents that analyze content structure to choose the right RAG chunking and embedding strategy!** 🎯
+### 🚀 **Phoenix AI Observability Integration**
+
+The system now includes **comprehensive observability** that provides:
+
+- **Real-time Monitoring**: Live visibility into all AI operations
+- **Performance Analytics**: Token usage, latency, and cost tracking
+- **Error Detection**: Automatic identification of failed operations
+- **Quality Metrics**: Confidence scores and accuracy measurements
+- **Production Insights**: Data-driven optimization opportunities
+
+**Access your observability dashboard at: http://localhost:6006** 📊
+
+This is exactly what you wanted: **agents that analyze content structure to choose the right RAG chunking and embedding strategy, with complete observability into every operation!** 🎯

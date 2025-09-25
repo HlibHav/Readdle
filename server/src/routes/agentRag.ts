@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ragService } from '../services/ragService.js';
 import { DeviceService } from '../services/deviceService.js';
+import { strategySelectionAgent } from '../agents/strategySelectionAgent.js';
 
 export async function processWithAgentRAG(req: Request, res: Response) {
   try {
@@ -63,8 +64,10 @@ export async function processWithAgentRAG(req: Request, res: Response) {
 
 export async function getAgentStrategies(req: Request, res: Response) {
   try {
-    const strategies = ragService.getAvailableStrategies();
-    res.json({ strategies });
+    // Get all available strategies from the strategy selection agent
+    // This includes both standard RAG strategies and OpenELM strategies
+    const allStrategies = strategySelectionAgent.getAvailableStrategies();
+    res.json({ strategies: allStrategies });
   } catch (error) {
     console.error('Error getting agent strategies:', error);
     res.status(500).json({ error: 'Failed to get agent strategies' });

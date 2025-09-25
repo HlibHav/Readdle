@@ -15,6 +15,8 @@ export interface RAGStrategy {
   complexityLevels: ContentStructure['complexity'][];
   performanceProfile: 'fast' | 'balanced' | 'comprehensive';
   reasoning: string;
+  llmProvider?: 'openai' | 'openelm';
+  llmModel?: string;
 }
 
 export interface StrategySelectionResult {
@@ -214,6 +216,116 @@ export class StrategySelectionAgent {
       complexityLevels: ['simple', 'medium'],
       performanceProfile: 'fast',
       reasoning: 'Offline processing for privacy and connectivity constraints'
+    });
+
+    // OpenELM strategies for efficient local inference
+    this.strategies.set('openelm-mobile-fast', {
+      name: 'OpenELM Mobile Fast',
+      description: 'OpenELM 270M Instruct for mobile devices with fast inference',
+      chunkingMethod: 'sentence',
+      chunkSize: 256,
+      chunkOverlap: 50,
+      embeddingModel: 'text-embedding-3-small',
+      vectorStore: 'memory',
+      deviceOptimized: true,
+      maxTokens: 150,
+      contentTypes: ['html', 'text', 'pdf'],
+      complexityLevels: ['simple'],
+      performanceProfile: 'fast',
+      reasoning: 'OpenELM 270M Instruct optimized for mobile devices',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-270m-instruct'
+    });
+
+    this.strategies.set('openelm-balanced', {
+      name: 'OpenELM Balanced',
+      description: 'OpenELM 450M Instruct for balanced performance and efficiency',
+      chunkingMethod: 'paragraph',
+      chunkSize: 512,
+      chunkOverlap: 100,
+      embeddingModel: 'text-embedding-3-small',
+      vectorStore: 'memory',
+      deviceOptimized: true,
+      maxTokens: 300,
+      contentTypes: ['html', 'text', 'pdf'],
+      complexityLevels: ['simple', 'medium'],
+      performanceProfile: 'balanced',
+      reasoning: 'OpenELM 450M Instruct provides good balance of speed and quality',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-450m-instruct'
+    });
+
+    this.strategies.set('openelm-comprehensive', {
+      name: 'OpenELM Comprehensive',
+      description: 'OpenELM 1.1B Instruct for comprehensive analysis with local inference',
+      chunkingMethod: 'semantic',
+      chunkSize: 1024,
+      chunkOverlap: 200,
+      embeddingModel: 'text-embedding-3-large',
+      vectorStore: 'faiss',
+      deviceOptimized: false,
+      maxTokens: 500,
+      contentTypes: ['html', 'text', 'pdf', 'structured'],
+      complexityLevels: ['medium', 'complex'],
+      performanceProfile: 'comprehensive',
+      reasoning: 'OpenELM 1.1B Instruct for comprehensive local analysis',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-1b-instruct'
+    });
+
+    this.strategies.set('openelm-advanced', {
+      name: 'OpenELM Advanced',
+      description: 'OpenELM 3B Instruct for advanced local processing capabilities',
+      chunkingMethod: 'semantic',
+      chunkSize: 1536,
+      chunkOverlap: 300,
+      embeddingModel: 'text-embedding-3-large',
+      vectorStore: 'faiss',
+      deviceOptimized: false,
+      maxTokens: 700,
+      contentTypes: ['html', 'text', 'pdf', 'structured', 'mixed'],
+      complexityLevels: ['complex'],
+      performanceProfile: 'comprehensive',
+      reasoning: 'OpenELM 3B Instruct for advanced local processing with high accuracy',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-3b-instruct'
+    });
+
+    // OpenELM fallback strategies for specific content types
+    this.strategies.set('openelm-pdf-specialized', {
+      name: 'OpenELM PDF Specialized',
+      description: 'OpenELM 450M Instruct optimized for PDF document processing',
+      chunkingMethod: 'section',
+      chunkSize: 768,
+      chunkOverlap: 150,
+      embeddingModel: 'text-embedding-3-small',
+      vectorStore: 'memory',
+      deviceOptimized: true,
+      maxTokens: 400,
+      contentTypes: ['pdf'],
+      complexityLevels: ['medium'],
+      performanceProfile: 'balanced',
+      reasoning: 'OpenELM optimized for PDF structure preservation',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-450m-instruct'
+    });
+
+    this.strategies.set('openelm-text-efficient', {
+      name: 'OpenELM Text Efficient',
+      description: 'OpenELM 270M for efficient plain text processing',
+      chunkingMethod: 'paragraph',
+      chunkSize: 512,
+      chunkOverlap: 100,
+      embeddingModel: 'text-embedding-3-small',
+      vectorStore: 'memory',
+      deviceOptimized: true,
+      maxTokens: 200,
+      contentTypes: ['text'],
+      complexityLevels: ['simple', 'medium'],
+      performanceProfile: 'fast',
+      reasoning: 'OpenELM 270M optimized for efficient text processing',
+      llmProvider: 'openelm',
+      llmModel: 'openelm-270m'
     });
   }
 
@@ -420,6 +532,16 @@ export class StrategySelectionAgent {
       score += 0.1; // Smaller model = faster network requests
     }
 
+    // OpenELM preference for local inference
+    if (strategy.llmProvider === 'openelm') {
+      score += 0.15; // Prefer local inference when available
+      
+      // Additional bonus for mobile devices
+      if (deviceInfo.isMobile) {
+        score += 0.1;
+      }
+    }
+
     return Math.min(1.0, score);
   }
 
@@ -541,6 +663,24 @@ export class StrategySelectionAgent {
 
   getStrategyByName(name: string): RAGStrategy | undefined {
     return this.strategies.get(name);
+  }
+
+  getOpenELMStrategies(): RAGStrategy[] {
+    return Array.from(this.strategies.values()).filter(
+      strategy => strategy.llmProvider === 'openelm'
+    );
+  }
+
+  getStrategiesByProvider(provider: 'openai' | 'openelm'): RAGStrategy[] {
+    return Array.from(this.strategies.values()).filter(
+      strategy => strategy.llmProvider === provider || (provider === 'openai' && !strategy.llmProvider)
+    );
+  }
+
+  getOpenELMStrategiesByProfile(profile: 'fast' | 'balanced' | 'comprehensive'): RAGStrategy[] {
+    return this.getOpenELMStrategies().filter(
+      strategy => strategy.performanceProfile === profile
+    );
   }
 
   /**

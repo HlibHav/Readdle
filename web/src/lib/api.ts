@@ -209,3 +209,63 @@ export async function generatePdf(url: string, title?: string, content?: string,
   }
   return response.json();
 }
+
+// OpenELM API functions
+export async function getOpenELMStatus(): Promise<{
+  success: boolean;
+  data: {
+    service: any;
+    availableModels: number;
+    models: any[];
+    strategies: number;
+    strategyList: any[];
+  };
+}> {
+  const response = await fetch(`${API_BASE}/openelm/status`);
+  if (!response.ok) {
+    throw new Error(`Failed to get OpenELM status: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function getOpenELMStrategies(profile?: string, deviceOptimized?: boolean): Promise<{
+  success: boolean;
+  data: {
+    strategies: any[];
+    total: number;
+  };
+}> {
+  const params = new URLSearchParams();
+  if (profile) params.append('profile', profile);
+  if (deviceOptimized !== undefined) params.append('deviceOptimized', deviceOptimized.toString());
+  
+  const response = await fetch(`${API_BASE}/openelm/strategies?${params}`);
+  if (!response.ok) {
+    throw new Error(`Failed to get OpenELM strategies: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function generateWithOpenELM(modelId: string, prompt: string, options?: any): Promise<{
+  success: boolean;
+  data: {
+    text: string;
+    modelId: string;
+    usage?: any;
+    processingTime: number;
+  };
+  error?: string;
+}> {
+  const response = await fetch(`${API_BASE}/openelm/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ modelId, prompt, options }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate with OpenELM: ${response.statusText}`);
+  }
+  return response.json();
+}

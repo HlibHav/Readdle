@@ -2,6 +2,7 @@ import { contentAnalysisAgent, ContentAnalysisResult } from './contentAnalysisAg
 import { strategySelectionAgent, StrategySelectionResult, RAGStrategy } from './strategySelectionAgent.js';
 import { DeviceService, DeviceInfo } from '../services/deviceService.js';
 import { sharedMemoryService } from '../services/sharedMemoryService.js';
+import { phoenixInstrumentation } from '../observability/phoenixInstrumentation.js';
 
 export interface AgentMessage {
   id: string;
@@ -67,8 +68,29 @@ export class AgentCoordinator {
     const startTime = Date.now();
     const messages: AgentMessage[] = [];
 
+    // Create Phoenix workflow context for observability
+    const workflowContext = phoenixInstrumentation.createWorkflowContext(workflowId);
+
     try {
       this.log('info', `Starting agent workflow ${workflowId}`, { contentLength: content.length, question });
+
+      // Create orchestrator span
+      phoenixInstrumentation.createAgentWorkflowSpan(
+        'AgentCoordinator',
+        'processContentWithAgents',
+        workflowId,
+        { content: content.substring(0, 500), question, deviceInfo, url },
+        { workflowId, startTime },
+        Date.now() - startTime,
+        {
+          workflow_id: workflowId,
+          content_length: content.length,
+          device_type: deviceInfo.isMobile ? 'mobile' : 'desktop',
+          user_agent: deviceInfo.userAgent,
+          processing_power: deviceInfo.processingPower,
+          url: url
+        }
+      );
 
       // Step 1: Check shared memory for existing content analysis
       let contentAnalysis: ContentAnalysisResult;
@@ -100,10 +122,28 @@ export class AgentCoordinator {
         );
         messages.push(analysisMessage);
 
+        const analysisStartTime = Date.now();
         contentAnalysis = await this.executeWithTimeout(
           () => contentAnalysisAgent.analyzeContent(content, url, metadata),
           this.config.timeoutMs,
           'Content analysis timeout'
+        );
+
+        // Create Phoenix span for content analysis
+        phoenixInstrumentation.createAgentStepSpan(
+          workflowId,
+          'content_analysis',
+          'ContentAnalysisAgent',
+          { content: content.substring(0, 500), url, metadata },
+          { analysis_start: analysisStartTime },
+          Date.now() - analysisStartTime,
+          {
+            workflow_id: workflowId,
+            agent_type: 'content_analysis',
+            content_type: contentAnalysis.structure.type,
+            complexity: contentAnalysis.structure.complexity,
+            confidence: contentAnalysis.confidence
+          }
         );
 
         // Store analysis in shared memory
@@ -155,6 +195,8 @@ export class AgentCoordinator {
         }
       }
 
+      // Create Phoenix span for strategy selection
+      const strategyStartTime = Date.now();
       const strategySelection = await this.executeWithTimeout(
         () => strategySelectionAgent.selectOptimalStrategy(
           contentAnalysis,
@@ -163,6 +205,32 @@ export class AgentCoordinator {
         ),
         this.config.timeoutMs,
         'Strategy selection timeout'
+      );
+
+      phoenixInstrumentation.createAgentStepSpan(
+        workflowId,
+        'strategy_selection',
+        'StrategySelectionAgent',
+        {
+          contentAnalysis: {
+            type: contentAnalysis.structure.type,
+            complexity: contentAnalysis.structure.complexity,
+            confidence: contentAnalysis.confidence
+          },
+          deviceInfo,
+          userPreferences: enhancedUserPreferences
+        },
+        { strategy_start: strategyStartTime },
+        Date.now() - strategyStartTime,
+        {
+          workflow_id: workflowId,
+          agent_type: 'strategy_selection',
+          content_type: contentAnalysis.structure.type,
+          complexity: contentAnalysis.structure.complexity,
+          selected_strategy: strategySelection.selectedStrategy.name,
+          strategy_confidence: strategySelection.confidence,
+          device_optimization: deviceInfo.isMobile ? 'mobile' : 'desktop'
+        }
       );
 
       const strategyResponse = this.createMessage(
@@ -212,6 +280,17 @@ export class AgentCoordinator {
         finalStrategy: finalStrategy.name
       });
 
+      // End Phoenix workflow context with success metadata
+      phoenixInstrumentation.endWorkflowContext(workflowId, {
+        'workflow.status': 'success',
+        'workflow.total_processing_time_ms': totalProcessingTime,
+        'workflow.overall_confidence': overallConfidence,
+        'workflow.final_strategy': finalStrategy.name,
+        'workflow.content_type': contentAnalysis.structure.type,
+        'workflow.complexity': contentAnalysis.structure.complexity,
+        'workflow.device_type': deviceInfo.isMobile ? 'mobile' : 'desktop'
+      });
+
       // Store strategy performance in shared memory for learning
       await this.storeStrategyPerformance(
         finalStrategy,
@@ -235,6 +314,24 @@ export class AgentCoordinator {
 
     } catch (error) {
       this.log('error', `Agent workflow ${workflowId} failed`, { error: error instanceof Error ? error.message : 'Unknown error' });
+      
+      // Create Phoenix error span
+      phoenixInstrumentation.createErrorSpan(
+        'agent_workflow_failure',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          workflow_id: workflowId,
+          error_type: error instanceof Error ? error.constructor.name : 'UnknownError',
+          fallback_enabled: this.config.fallbackOnError
+        }
+      );
+
+      // End Phoenix workflow context with error metadata
+      phoenixInstrumentation.endWorkflowContext(workflowId, {
+        'workflow.status': 'error',
+        'workflow.error_message': error instanceof Error ? error.message : 'Unknown error',
+        'workflow.fallback_enabled': this.config.fallbackOnError
+      });
       
       if (this.config.fallbackOnError) {
         return this.handleWorkflowError(workflowId, content, deviceInfo, error, messages, startTime);

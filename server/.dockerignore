@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+dist
+coverage
+.nyc_output
+.git
+.gitignore
+README.md
+Dockerfile*
+docker-compose*
+.dockerignore
+phoenix-env
+*.log

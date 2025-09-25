@@ -12,7 +12,10 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.backup
+.env.docker
 *.env
+*.env.*
 !env.example
 
 # Build outputs

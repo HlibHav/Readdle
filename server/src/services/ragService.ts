@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { agentCoordinator, AgentWorkflowResult } from '../agents/agentCoordinator.js';
 import { RAGStrategy as AgentRAGStrategy } from '../agents/strategySelectionAgent.js';
+import { phoenixInstrumentation } from '../observability/phoenixInstrumentation.js';
 
 export interface RAGStrategy {
   name: string;
@@ -350,8 +351,25 @@ export class RAGService {
     metadata?: any
   ): Promise<RAGResult> {
     const startTime = Date.now();
+    const workflowId = `rag-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     try {
+      // Create Phoenix RAG span
+      phoenixInstrumentation.createRAGSpan(
+        'agent_powered_rag',
+        question,
+        0, // Will be updated after retrieval
+        'agent_selected',
+        Date.now() - startTime,
+        0, // Will be updated after processing
+        {
+          workflow_id: workflowId,
+          content_length: content.length,
+          device_type: deviceInfo.isMobile ? 'mobile' : 'desktop',
+          url: url
+        }
+      );
+
       // Use agent coordinator to analyze content and select optimal strategy
       const agentWorkflow = await agentCoordinator.processContentWithAgents(
         content,
@@ -380,6 +398,28 @@ export class RAGService {
       );
       
       const processingTime = Date.now() - startTime;
+      
+      // Create Phoenix RAG span for agent-powered RAG processing
+      phoenixInstrumentation.createRAGSpan(
+        'agent_rag_processing',
+        question,
+        relevantDocs.length,
+        agentWorkflow.finalStrategy.name,
+        agentWorkflow.confidence,
+        processingTime,
+        {
+          operation_type: 'agent_rag_processing',
+          strategy: agentWorkflow.finalStrategy.name,
+          content_length: content.length,
+          question_length: question.length,
+          chunks_count: chunks.length,
+          sources_count: relevantDocs.length,
+          device_info: deviceInfo,
+          agent_workflow_id: agentWorkflow.workflowId,
+          content_analysis_confidence: agentWorkflow.contentAnalysis.confidence,
+          strategy_selection_confidence: agentWorkflow.strategySelection.confidence
+        }
+      );
       
       return {
         answer,
@@ -437,6 +477,25 @@ export class RAGService {
       const answer = await this.generateAnswer(question, relevantDocs, strategy);
       
       const processingTime = Date.now() - startTime;
+      
+      // Create Phoenix RAG span for legacy RAG processing
+      phoenixInstrumentation.createRAGSpan(
+        'legacy_rag_processing',
+        question,
+        relevantDocs.length,
+        strategy.name,
+        this.calculateConfidence(relevantDocs, answer),
+        processingTime,
+        {
+          operation_type: 'legacy_rag_processing',
+          strategy: strategy.name,
+          content_length: content.length,
+          question_length: question.length,
+          chunks_count: chunks.length,
+          sources_count: relevantDocs.length,
+          device_info: deviceInfo
+        }
+      );
       
       return {
         answer,
@@ -554,8 +613,31 @@ Answer:
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
+    // Create Phoenix LLM span for agent-powered RAG answer generation
+    const llmStartTime = Date.now();
     const result = await llm.invoke(prompt);
-    return typeof result.content === 'string' ? result.content : '';
+    const llmLatency = Date.now() - llmStartTime;
+    const answer = typeof result.content === 'string' ? result.content : '';
+
+    // Instrument with Phoenix
+    phoenixInstrumentation.createLLMSpan(
+      'gpt-3.5-turbo',
+      'agent_rag_answer_generation',
+      prompt,
+      answer,
+      { prompt: prompt.length, completion: answer.length },
+      llmLatency,
+      {
+        operation_type: 'agent_rag_answer_generation',
+        strategy: agentStrategy.name,
+        context_length: context.length,
+        sources_count: sources.length,
+        question_length: question.length,
+        agent_strategy: agentStrategy.name
+      }
+    );
+
+    return answer;
   }
 
   private async chunkContent(content: string, strategy: RAGStrategy): Promise<Document[]> {
@@ -639,8 +721,30 @@ Answer:
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
+    // Create Phoenix LLM span for RAG answer generation
+    const llmStartTime = Date.now();
     const result = await llm.invoke(prompt);
-    return typeof result.content === 'string' ? result.content : '';
+    const llmLatency = Date.now() - llmStartTime;
+    const answer = typeof result.content === 'string' ? result.content : '';
+
+    // Instrument with Phoenix
+    phoenixInstrumentation.createLLMSpan(
+      'gpt-3.5-turbo',
+      'rag_answer_generation',
+      prompt,
+      answer,
+      { prompt: prompt.length, completion: answer.length },
+      llmLatency,
+      {
+        operation_type: 'rag_answer_generation',
+        strategy: strategy.name,
+        context_length: context.length,
+        sources_count: sources.length,
+        question_length: question.length
+      }
+    );
+
+    return answer;
   }
 
   private calculateConfidence(sources: Document[], answer: string): number {

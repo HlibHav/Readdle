@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
 import { ragService } from '../services/ragService.js';
 import { DeviceService } from '../services/deviceService.js';
+import { strategySelectionAgent } from '../agents/strategySelectionAgent.js';
+import { phoenixInstrumentation } from '../observability/phoenixInstrumentation.js';
 
 export async function getRAGStrategies(req: Request, res: Response) {
   try {
-    const strategies = ragService.getAvailableStrategies();
-    res.json({ strategies });
+    // Get all available strategies from the strategy selection agent
+    // This includes both standard RAG strategies and OpenELM strategies
+    const allStrategies = strategySelectionAgent.getAvailableStrategies();
+    res.json({ strategies: allStrategies });
   } catch (error) {
     console.error('Error getting RAG strategies:', error);
     res.status(500).json({ error: 'Failed to get RAG strategies' });
@@ -29,6 +33,8 @@ export async function getRAGStrategy(req: Request, res: Response) {
 }
 
 export async function processWithRAG(req: Request, res: Response) {
+  const startTime = Date.now();
+  
   try {
     const { content, question, deviceInfo, strategyName, cloudAI = true } = req.body;
     
@@ -62,6 +68,27 @@ export async function processWithRAG(req: Request, res: Response) {
       confidence: result.confidence,
       answerLength: result.answer?.length 
     });
+    
+    // Create Phoenix workflow span for RAG request
+    const processingTime = Date.now() - startTime;
+    phoenixInstrumentation.createAgentWorkflowSpan(
+      'rag_processor',
+      'process_with_rag',
+      `rag-${Date.now()}`,
+      { content: content.substring(0, 500), question, strategyName, cloudAI },
+      { answer: result.answer?.substring(0, 500), strategy: result.strategy, confidence: result.confidence },
+      processingTime,
+      {
+        operation_type: 'rag_request',
+        strategy: result.strategy,
+        confidence: result.confidence,
+        content_length: content.length,
+        question_length: question.length,
+        cloud_ai: cloudAI,
+        device_info: detectedDevice,
+        processing_time: result.processingTime
+      }
+    );
     
     res.json({
       answer: result.answer,

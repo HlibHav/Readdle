@@ -2,6 +2,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ragService, RAGResult } from './ragService.js';
 import { DeviceService, DeviceInfo } from './deviceService.js';
 import { huggingFaceTranslationService } from './huggingFaceTranslationService.js';
+import { openelmService, OpenELMModel } from './openelmService.js';
+import { phoenixInstrumentation } from '../observability/phoenixInstrumentation.js';
 
 export class LangChainService {
   private llm: ChatOpenAI | null = null;
@@ -43,6 +45,67 @@ export class LangChainService {
     return this.isInitialized;
   }
 
+  async initializeOpenELM(): Promise<void> {
+    try {
+      await openelmService.initialize();
+      console.log('✅ OpenELM service initialized');
+    } catch (error) {
+      console.error('❌ OpenELM initialization failed:', error);
+    }
+  }
+
+  getOpenELMStatus(): {
+    initialized: boolean;
+    hasApiKey: boolean;
+    availableModels: number;
+    ready: boolean;
+  } {
+    return openelmService.getServiceStatus();
+  }
+
+  getAvailableOpenELMModels(): OpenELMModel[] {
+    return openelmService.getAvailableModels();
+  }
+
+  async generateWithOpenELM(
+    modelId: string,
+    prompt: string,
+    options?: {
+      maxTokens?: number;
+      temperature?: number;
+      topP?: number;
+      repetitionPenalty?: number;
+    }
+  ): Promise<{
+    text: string;
+    success: boolean;
+    error?: string;
+    usage?: {
+      promptTokens: number;
+      generatedTokens: number;
+      totalTokens: number;
+    };
+  }> {
+    try {
+      await this.initializeOpenELM();
+      
+      const response = await openelmService.generateText(modelId, prompt, options);
+      
+      return {
+        text: response.text,
+        success: true,
+        usage: response.usage
+      };
+    } catch (error) {
+      console.error('OpenELM generation error:', error);
+      return {
+        text: '',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
   async summarizeContent(text: string, cloudAI: boolean = true): Promise<{
     summary: string;
     success: boolean;
@@ -71,8 +134,25 @@ Format the summary with clear sections and bullet points where appropriate. Be c
 Text: ${text.substring(0, 6000)}
 `;
 
+      const llmStartTime = Date.now();
       const result = await this.llm!.invoke(prompt);
+      const llmLatency = Date.now() - llmStartTime;
       const summary = typeof result.content === 'string' ? result.content : '';
+
+      // Create Phoenix LLM span for summarization
+      phoenixInstrumentation.createLLMSpan(
+        'gpt-4o-mini',
+        'summarize_content',
+        prompt,
+        summary,
+        { prompt: prompt.length, completion: summary.length },
+        llmLatency,
+        {
+          operation_type: 'summarization',
+          content_length: text.length,
+          cloud_ai_enabled: cloudAI
+        }
+      );
       
       return {
         summary: summary.trim(),
@@ -81,7 +161,7 @@ Text: ${text.substring(0, 6000)}
       } else if (cloudAI && !this.isInitialized) {
         // Cloud AI is enabled but not available - show error message
         return {
-          summary: `## Cloud AI Summary\n\n*Cloud AI is enabled but not available. Please check your API key configuration.*\n\n# Executive Summary\n\n## Overview\nCloud AI service is not initialized. Please check your OpenAI API key configuration.\n\n## Key Points\n• Cloud AI service is not available\n• Check your OpenAI API key in the server configuration\n• Falling back to local processing for basic summary\n\n## Recommendations\n• Verify your OpenAI API key is correctly set\n• Restart the server after updating configuration\n• Contact support if the issue persists`,
+          summary: this.generateCloudAIUnavailableResponse('content summarization'),
           success: false,
           error: 'Cloud AI is enabled but not available. Please check your API key configuration.'
         };
@@ -106,12 +186,14 @@ Text: ${text.substring(0, 6000)}
     text: string, 
     question: string, 
     cloudAI: boolean = true,
-    deviceInfo?: DeviceInfo
+    deviceInfo?: DeviceInfo,
+    includeFollowUps: boolean = true
   ): Promise<{
     answer: string;
     success: boolean;
     error?: string;
     ragResult?: RAGResult;
+    followUpQuestions?: string[];
   }> {
     try {
       // Initialize LLM if not already done
@@ -124,7 +206,8 @@ Text: ${text.substring(0, 6000)}
         return {
           answer: ragResult.answer,
           success: true,
-          ragResult
+          ragResult,
+          followUpQuestions: includeFollowUps ? this.generateFollowUpQuestions(question, text) : undefined
         };
       }
       
@@ -133,7 +216,7 @@ Text: ${text.substring(0, 6000)}
         if (cloudAI && !this.isInitialized) {
           // Cloud AI is enabled but not available - show error message
           return {
-            answer: `## Cloud AI Response\n\n*Cloud AI is enabled but not available. Please check your API key configuration.*\n\n## Direct Answer\nCloud AI service is not initialized. Please check your OpenAI API key configuration.\n\n## Contextual Insights\n• Cloud AI service is not available\n• Check your OpenAI API key in the server configuration\n• Falling back to local processing for basic response\n\n## Recommendations\n• Verify your OpenAI API key is correctly set\n• Restart the server after updating configuration\n• Contact support if the issue persists`,
+            answer: this.generateCloudAIUnavailableResponse(question),
             success: false,
             error: 'Cloud AI is enabled but not available. Please check your API key configuration.'
           };
@@ -141,32 +224,78 @@ Text: ${text.substring(0, 6000)}
         return {
           answer: this.localQA(text, question),
           success: true,
+          followUpQuestions: includeFollowUps ? this.generateFollowUpQuestions(question, text) : undefined
         };
       }
 
       const prompt = `
-You are an intelligent assistant that provides comprehensive, contextual responses that simulate passive information acquisition. When users ask questions, provide not just direct answers but also related insights, implications, and valuable information they might discover while browsing.
+You are an expert research assistant specializing in comprehensive document analysis and contextual information discovery. Your role is to provide thorough, well-structured responses that help users understand not just what they asked, but the broader context and implications.
 
-Your response should include:
+## Response Structure
+Provide responses in the following format:
 
-1. **Direct Answer**: Answer the specific question asked
-2. **Contextual Insights**: Related information that provides broader understanding
-3. **Implications**: What this information means or why it matters
-4. **Related Discoveries**: Additional valuable information from the text that the user might find interesting
-5. **Connections**: How different pieces of information relate to each other
+### Direct Answer
+[Answer the specific question clearly and concisely]
 
-Format your response with clear sections and bullet points. Be comprehensive but focused. Use only information from the provided text.
+### Context & Background
+[Provide relevant context that helps understand the answer better]
+
+### Key Insights
+[Highlight 2-3 most important insights related to the question]
+
+### Implications & Significance
+[Explain what this information means and why it matters]
+
+### Related Discoveries
+[Share additional valuable information from the text that's relevant or interesting]
+
+### Connections
+[Explain how different pieces of information relate to each other, if applicable]
+
+## Guidelines:
+- Be comprehensive but concise (aim for 300-500 words total)
+- Use clear, professional language
+- Include specific details, numbers, or examples when available
+- Maintain objectivity and accuracy
+- If information is not available in the text, clearly state this
+- Focus on actionable insights and practical implications
+
+## Question Analysis:
+- Question type: ${this.analyzeQuestionType(question)}
+- Question complexity: ${this.analyzeQuestionComplexity(question)}
+- Expected response depth: ${this.getExpectedDepth(question)}
 
 Page text: ${text.substring(0, 6000)}
 Question: ${question}
 `;
 
+      const llmStartTime = Date.now();
       const result = await this.llm!.invoke(prompt);
+      const llmLatency = Date.now() - llmStartTime;
       const answer = typeof result.content === 'string' ? result.content : '';
+
+      // Create Phoenix LLM span for Q&A
+      phoenixInstrumentation.createLLMSpan(
+        'gpt-4o-mini',
+        'answer_question',
+        prompt,
+        answer,
+        { prompt: prompt.length, completion: answer.length },
+        llmLatency,
+        {
+          operation_type: 'question_answering',
+          question_type: this.analyzeQuestionType(question),
+          question_complexity: this.analyzeQuestionComplexity(question),
+          content_length: text.length,
+          cloud_ai_enabled: cloudAI,
+          device_info: deviceInfo ? JSON.stringify(deviceInfo) : undefined
+        }
+      );
       
       return {
         answer: answer.trim(),
         success: true,
+        followUpQuestions: includeFollowUps ? this.generateFollowUpQuestions(question, text) : undefined
       };
     } catch (error) {
       console.error('LangChain Q&A error:', error);
@@ -174,6 +303,7 @@ Question: ${question}
         answer: this.localQA(text, question),
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        followUpQuestions: includeFollowUps ? this.generateFollowUpQuestions(question, text) : undefined
       };
     }
   }
@@ -230,8 +360,27 @@ Examples of good filenames:
 Respond with JSON: {"suggestedName": "filename.pdf", "confidence": 0.9, "reasoning": "detailed explanation of why this name was chosen"}
 `;
 
+      const llmStartTime = Date.now();
       const result = await this.llm!.invoke(prompt);
+      const llmLatency = Date.now() - llmStartTime;
       const response = typeof result.content === 'string' ? result.content : '';
+
+      // Create Phoenix LLM span for filename suggestion
+      phoenixInstrumentation.createLLMSpan(
+        'gpt-4o-mini',
+        'suggest_filename',
+        prompt,
+        response,
+        { prompt: prompt.length, completion: response.length },
+        llmLatency,
+        {
+          operation_type: 'filename_suggestion',
+          file_type: file.type,
+          file_size: file.size,
+          content_available: !!content,
+          content_length: content?.length || 0
+        }
+      );
       
       console.log('🤖 LLM Filename Response:', response);
 
@@ -582,7 +731,7 @@ Text to analyze: ${text.substring(0, 6000)}
       } else if (cloudAI && !this.isInitialized) {
         // Cloud AI is enabled but not available - show error message
         return {
-          insights: `## Cloud AI Analysis\n\n*Cloud AI is enabled but not available. Please check your API key configuration.*\n\n# Key Insights\n\n• Cloud AI service is not initialized\n• Check your OpenAI API key in the server configuration\n• Falling back to local processing for basic analysis\n\n## Recommendations\n• Verify your OpenAI API key is correctly set\n• Restart the server after updating configuration\n• Contact support if the issue persists`,
+          insights: this.generateCloudAIUnavailableResponse('content analysis and insights'),
           success: false,
           error: 'Cloud AI is enabled but not available. Please check your API key configuration.'
         };
@@ -639,7 +788,7 @@ Text to analyze: ${text.substring(0, 6000)}
       } else if (cloudAI && !this.isInitialized) {
         // Cloud AI is enabled but not available - show error message
         return {
-          todos: `## Cloud AI Todo List\n\n*Cloud AI is enabled but not available. Please check your API key configuration.*\n\n# Action Items\n\n• Cloud AI service is not initialized\n• Check your OpenAI API key in the server configuration\n• Falling back to local processing for basic todo creation\n\n## Recommendations\n• Verify your OpenAI API key is correctly set\n• Restart the server after updating configuration\n• Contact support if the issue persists`,
+          todos: this.generateCloudAIUnavailableResponse('todo list generation'),
           success: false,
           error: 'Cloud AI is enabled but not available. Please check your API key configuration.'
         };
@@ -795,7 +944,7 @@ Text to analyze: ${text.substring(0, 6000)}
 
   private localQA(text: string, question: string): string {
     if (!text || !question) {
-      return 'Not found in page';
+      return '### Direct Answer\nInformation not found in the provided content.';
     }
 
     const questionLower = question.toLowerCase();
@@ -808,12 +957,17 @@ Text to analyze: ${text.substring(0, 6000)}
     
     let response = '';
     
+    // Add question analysis context
+    response += `*Local analysis - Question type: ${this.analyzeQuestionType(question)}, Complexity: ${this.analyzeQuestionComplexity(question)}*\n\n`;
+    
     if (directAnswer) {
-      response += `## Direct Answer\n${directAnswer}\n\n`;
+      response += `### Direct Answer\n${directAnswer}\n\n`;
+    } else {
+      response += `### Direct Answer\nNo direct answer found for this specific question in the provided content.\n\n`;
     }
     
     if (contextualInsights.length > 0) {
-      response += `## Contextual Insights\n`;
+      response += `### Context & Background\n`;
       contextualInsights.forEach(insight => {
         response += `• ${insight}\n`;
       });
@@ -821,7 +975,7 @@ Text to analyze: ${text.substring(0, 6000)}
     }
     
     if (implications.length > 0) {
-      response += `## Implications\n`;
+      response += `### Implications & Significance\n`;
       implications.forEach(implication => {
         response += `• ${implication}\n`;
       });
@@ -829,15 +983,21 @@ Text to analyze: ${text.substring(0, 6000)}
     }
     
     if (relatedDiscoveries.length > 0) {
-      response += `## Related Discoveries\n`;
+      response += `### Related Discoveries\n`;
       relatedDiscoveries.forEach(discovery => {
         response += `• ${discovery}\n`;
       });
       response += `\n`;
     }
     
-    if (!response.trim()) {
-      return 'Not found in page';
+    // Add connections section
+    if (directAnswer && (contextualInsights.length > 0 || implications.length > 0)) {
+      response += `### Connections\n`;
+      response += `The information above provides a comprehensive view of the topic, connecting direct answers with broader context and implications.\n\n`;
+    }
+    
+    if (!response.trim() || response.length < 100) {
+      return `### Direct Answer\nNo relevant information found for "${question}" in the provided content.\n\n### Recommendation\nEnable Cloud AI for more comprehensive analysis, or try rephrasing your question with different keywords.`;
     }
     
     return response.trim();
@@ -868,6 +1028,167 @@ Text to analyze: ${text.substring(0, 6000)}
       return firstSentence.trim() + (firstSentence.endsWith('.') ? '' : '.');
     }
     return text.substring(0, 150) + '...';
+  }
+
+  private analyzeQuestionType(question: string): string {
+    const q = question.toLowerCase();
+    if (q.startsWith('what')) return 'definition/information';
+    if (q.startsWith('how')) return 'process/method';
+    if (q.startsWith('why')) return 'explanation/reasoning';
+    if (q.startsWith('when')) return 'temporal';
+    if (q.startsWith('where')) return 'location/context';
+    if (q.startsWith('who')) return 'people/entities';
+    if (q.includes('compare') || q.includes('difference')) return 'comparison';
+    if (q.includes('benefit') || q.includes('advantage')) return 'analysis';
+    if (q.includes('problem') || q.includes('issue')) return 'problem-solving';
+    return 'general inquiry';
+  }
+
+  private analyzeQuestionComplexity(question: string): string {
+    const wordCount = question.split(' ').length;
+    const hasMultipleParts = question.includes(' and ') || question.includes(' or ') || question.includes(' but ');
+    const hasSubQuestions = question.includes('?') && question.split('?').length > 2;
+    
+    if (wordCount > 15 || hasMultipleParts || hasSubQuestions) return 'complex';
+    if (wordCount > 8) return 'moderate';
+    return 'simple';
+  }
+
+  private getExpectedDepth(question: string): string {
+    const q = question.toLowerCase();
+    const depthKeywords = {
+      'brief': ['brief', 'short', 'quick', 'summary'],
+      'detailed': ['detailed', 'comprehensive', 'thorough', 'explain', 'describe'],
+      'specific': ['specific', 'exact', 'precise', 'particular']
+    };
+    
+    for (const [depth, keywords] of Object.entries(depthKeywords)) {
+      if (keywords.some(keyword => q.includes(keyword))) {
+        return depth;
+      }
+    }
+    
+    return 'moderate';
+  }
+
+  private generateFollowUpQuestions(originalQuestion: string, text: string): string[] {
+    const questionType = this.analyzeQuestionType(originalQuestion);
+    const followUps: string[] = [];
+    
+    // Extract key topics and concepts from the text
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    const keyTopics = this.extractKeyTopics(sentences);
+    
+    // Generate contextual follow-up questions based on question type
+    switch (questionType) {
+      case 'definition/information':
+        followUps.push(`What are the main benefits of ${this.extractMainTopic(originalQuestion)}?`);
+        followUps.push(`How does ${this.extractMainTopic(originalQuestion)} work in practice?`);
+        followUps.push(`What are the key challenges related to ${this.extractMainTopic(originalQuestion)}?`);
+        break;
+      case 'process/method':
+        followUps.push(`What are the prerequisites for this process?`);
+        followUps.push(`What are common problems with this method?`);
+        followUps.push(`How long does this process typically take?`);
+        break;
+      case 'explanation/reasoning':
+        followUps.push(`What are the underlying causes?`);
+        followUps.push(`How can this be prevented or improved?`);
+        followUps.push(`What are the long-term implications?`);
+        break;
+      case 'comparison':
+        followUps.push(`What are the key differences in implementation?`);
+        followUps.push(`Which option is better for specific use cases?`);
+        followUps.push(`What are the cost implications?`);
+        break;
+      default:
+        if (keyTopics.length > 0) {
+          followUps.push(`What are the main challenges with ${keyTopics[0]}?`);
+          followUps.push(`How does ${keyTopics[0]} compare to alternatives?`);
+          followUps.push(`What are the next steps for ${keyTopics[0]}?`);
+        }
+    }
+    
+    // Add topic-specific questions based on content
+    keyTopics.slice(0, 2).forEach(topic => {
+      if (topic.length > 3 && !followUps.some(q => q.toLowerCase().includes(topic.toLowerCase()))) {
+        followUps.push(`What are the key considerations for ${topic}?`);
+      }
+    });
+    
+    return followUps.slice(0, 3); // Limit to 3 follow-up questions
+  }
+
+  private extractKeyTopics(sentences: string[]): string[] {
+    const topics: string[] = [];
+    const topicWords = ['technology', 'system', 'process', 'method', 'approach', 'solution', 'platform', 'framework', 'tool', 'service'];
+    
+    sentences.forEach(sentence => {
+      const words = sentence.toLowerCase().split(' ');
+      words.forEach(word => {
+        if (topicWords.some(topic => word.includes(topic)) && word.length > 4) {
+          if (!topics.includes(word)) {
+            topics.push(word);
+          }
+        }
+      });
+    });
+    
+    return topics;
+  }
+
+  private extractMainTopic(question: string): string {
+    // Extract the main noun or topic from the question
+    const words = question.toLowerCase().split(' ');
+    const stopWords = ['what', 'how', 'why', 'when', 'where', 'who', 'is', 'are', 'does', 'do', 'can', 'could', 'should', 'would'];
+    const mainWords = words.filter(word => !stopWords.includes(word) && word.length > 3);
+    
+    return mainWords[0] || 'this topic';
+  }
+
+  private generateCloudAIUnavailableResponse(question: string): string {
+    const currentTime = new Date().toLocaleTimeString();
+    
+    return `### Direct Answer
+I understand you're asking about "${question}", but I'm currently unable to provide a comprehensive AI-powered response due to a configuration issue.
+
+### Current Situation
+🔄 **Status**: Cloud AI service is temporarily unavailable  
+⏰ **Time**: ${currentTime}  
+🔧 **Issue**: OpenAI API key not configured or invalid
+
+### What This Means
+• Cloud AI features are disabled for enhanced responses
+• You're currently receiving local processing results
+• Advanced analysis and contextual insights are limited
+
+### Quick Setup Guide
+To enable Cloud AI for better responses:
+
+1. **Get an API Key**:
+   • Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+   • Create a new API key (requires OpenAI account)
+
+2. **Configure the Server**:
+   • Open \`server/.env\` file
+   • Add: \`OPENAI_API_KEY=your_actual_api_key_here\`
+   • Save the file
+
+3. **Restart the Application**:
+   • Stop the current server (Ctrl+C)
+   • Run \`./scripts/dev.sh\` again
+
+### Alternative Options
+• **Continue with Local Processing**: Current responses use on-device analysis
+• **Try Different Questions**: Some topics work better with local processing
+• **Check Documentation**: Review setup guides for detailed instructions
+
+### Support Resources
+• 📚 Setup Guide: Check the project README
+• 🔍 Troubleshooting: Look for "API key" in server logs
+• 💬 Community: Join the project discussions for help
+
+*Note: This is a one-time setup. Once configured, Cloud AI will provide enhanced, contextual responses to your questions.*`;
   }
 
   private localFileNameSuggestion(file: any, content?: string): {

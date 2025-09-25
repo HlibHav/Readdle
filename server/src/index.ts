@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { phoenixInstrumentation } from './observability/phoenixInstrumentation.js';
 import { extractPageContent } from './routes/extract.js';
 import { summarizeContent } from './routes/summarize.js';
 import { answerQuestion } from './routes/qa.js';
@@ -19,8 +20,13 @@ import { translateContent } from './routes/translate.js';
 import { analyzeForInsights } from './routes/analyze.js';
 import { createTodos } from './routes/todos.js';
 import sharedMemoryRouter from './routes/sharedMemory.js';
+import phoenixRouter from './routes/phoenix.js';
+import openelmRouter from './routes/openelm.js';
 
 dotenv.config();
+
+// Initialize Phoenix observability
+phoenixInstrumentation.initialize();
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -56,6 +62,12 @@ app.get('/agent-rag/metrics', getAgentMetrics);
 
 // Shared Memory Routes
 app.use('/shared-memory', sharedMemoryRouter);
+
+// Phoenix Observability Routes
+app.use('/api/phoenix', phoenixRouter);
+
+// OpenELM Routes
+app.use('/api/openelm', openelmRouter);
 
 // Health check
 app.get('/health', (req, res) => {

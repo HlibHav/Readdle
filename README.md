@@ -78,6 +78,21 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 │  │• Validation │  │• RAG Engine │  │• File Cache │  │• Reporting  │            │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘            │
 └─────────────────────────────────────────────────────────────────────────────────┘
+         │                       │                       │                       │
+         │                       │                       │                       │
+         ▼                       ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         PHOENIX AI OBSERVABILITY                               │
+│                                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │   TRACING   │  │   MONITORING│  │   ANALYTICS │  │   DASHBOARD │            │
+│  │             │  │             │  │             │  │             │            │
+│  │• LLM Spans  │  │• Performance│  │• Token Usage│  │• Phoenix UI │            │
+│  │• RAG Spans  │  │• Latency    │  │• Cost Track │  │• Real-time  │            │
+│  │• Agent Spans│  │• Error Rate │  │• Confidence │  │• Traces     │            │
+│  │• Workflows  │  │• Health     │  │• Quality    │  │• Insights   │            │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘            │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -111,6 +126,13 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 - ✅ **Privacy Controls**: Toggle between cloud AI and local processing
 - ✅ **Content Understanding**: Context-aware processing with confidence scoring
 
+#### **5. Phoenix AI Observability**
+- ✅ **Real-time Tracing**: Complete visibility into all AI operations
+- ✅ **LLM Monitoring**: Token usage, latency, and performance tracking
+- ✅ **RAG Analytics**: Retrieval and generation process monitoring
+- ✅ **Agent Workflows**: Multi-agent orchestration visibility
+- ✅ **Production Monitoring**: Error detection and performance optimization
+
 ### **🔧 Technical Excellence**
 
 #### **Security & Reliability**
@@ -128,6 +150,13 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 ---
 
 ## 🚀 Core Features & Capabilities
+
+### 🍎 Apple OpenELM Integration
+- **Local AI Inference**: Apple's OpenELM models (270M, 450M, 1.1B, 3B) for efficient local processing
+- **Device Optimization**: Mobile-optimized strategies with OpenELM 270M and 450M models
+- **Privacy-First**: Local inference without cloud dependencies for sensitive content
+- **Model Selection**: Intelligent strategy selection between OpenAI and OpenELM based on device capabilities
+- **Performance Tuning**: Optimized chunking and processing strategies for each OpenELM model size
 
 ### 🤖 AI-Powered Document Processing
 
@@ -204,6 +233,10 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 │   ├── suggestFilename.ts (AI Naming)
 │   ├── organizeFiles.ts (Smart Organization)
 │   └── previewService.ts (Document Preview)
+├── Observability/
+│   ├── phoenixTracer.ts (Phoenix AI Tracing)
+│   ├── phoenixInstrumentation.ts (Instrumentation Layer)
+│   └── phoenixRoutes.ts (Observability API)
 └── Monitoring/
     ├── errorHandling.ts
     ├── performanceOptimization.ts
@@ -239,9 +272,26 @@ cd Readdle
 # Install dependencies
 pnpm install
 
+# Start Phoenix AI Observability (Docker)
+cd server
+docker-compose up -d
+
 # Start development servers
-   pnpm dev
+pnpm dev
    ```
+
+### **Phoenix AI Observability Setup**
+
+```bash
+# Phoenix UI: http://localhost:6006
+# OTLP Endpoint: http://localhost:4317 (gRPC) / http://localhost:6006/v1/traces (HTTP)
+
+# Environment Configuration
+export PHOENIX_OBSERVABILITY_ENABLED=true
+export PHOENIX_PROJECT_NAME=documents-browser-app
+export PHOENIX_COLLECTOR_ENDPOINT=http://localhost:4317
+export PHOENIX_API_KEY=your_phoenix_api_key
+```
 
 ### **Production Deployment**
 
@@ -255,7 +305,17 @@ docker run -p 5173:5173 -p 5174:5174 documents-browser
 
 # Environment configuration
 export OPENAI_API_KEY=your_api_key
+export HUGGINGFACE_API_KEY=your_huggingface_api_key
 export NODE_ENV=production
+```
+
+### **🍎 OpenELM Configuration**
+```bash
+# Get your Hugging Face API key from: https://huggingface.co/settings/tokens
+export HUGGINGFACE_API_KEY=your_huggingface_api_key
+
+# OpenELM models will be automatically available once the API key is configured
+# Available models: openelm-270m, openelm-450m, openelm-1b, openelm-3b (with -instruct variants)
 ```
 
 ---
@@ -312,6 +372,55 @@ export NODE_ENV=production
 ---
 
 ## 🔌 API Documentation
+
+### **🍎 OpenELM Endpoints**
+
+#### **Service Status & Models**
+```bash
+# Get OpenELM service status
+GET /api/openelm/status
+
+# Get available OpenELM models
+GET /api/openelm/models?profile=balanced
+
+# Get OpenELM strategies
+GET /api/openelm/strategies?deviceOptimized=true
+```
+
+#### **Text Generation**
+```bash
+# Generate text with OpenELM
+POST /api/openelm/generate
+{
+  "modelId": "openelm-450m-instruct",
+  "prompt": "Summarize this document...",
+  "options": {
+    "maxTokens": 300,
+    "temperature": 0.7
+  }
+}
+```
+
+#### **Provider Comparison**
+```bash
+# Compare OpenELM vs OpenAI
+POST /api/openelm/compare
+{
+  "prompt": "Explain quantum computing",
+  "openelmModelId": "openelm-1b-instruct"
+}
+```
+
+#### **Model Recommendations**
+```bash
+# Get model recommendations
+POST /api/openelm/recommend
+{
+  "deviceInfo": { "isMobile": true, "processingPower": "medium" },
+  "contentType": "pdf",
+  "complexity": "medium"
+}
+```
 
 ### **Core Endpoints**
 
@@ -370,6 +479,22 @@ Response: {
   "confidence": 0.88,
   "sources": ["relevant excerpts"]
 }
+
+POST /rag/process
+// Advanced RAG processing with Phoenix tracing
+{
+  "content": "Document content...",
+  "question": "What is this about?",
+  "cloudAI": true,
+  "strategyName": "comprehensive"
+}
+Response: {
+  "answer": "AI-generated answer...",
+  "strategy": "Text Paragraph Processing",
+  "confidence": 0.92,
+  "processingTime": 1249,
+  "sources": [...]
+}
 ```
 
 #### **File Management**
@@ -389,6 +514,28 @@ Response: {
   "confidence": 0.92,
   "reasoning": "Based on content analysis...",
   "tags": ["suggested", "tags"]
+}
+```
+
+#### **Phoenix AI Observability**
+```typescript
+GET /phoenix/status
+// Check Phoenix observability status
+Response: {
+  "enabled": true,
+  "projectName": "documents-browser-app",
+  "otlpEndpoint": "http://localhost:4317",
+  "phoenixUI": "http://localhost:6006",
+  "tracesCount": 156,
+  "spansCount": 290
+}
+
+POST /phoenix/test
+// Generate test traces for Phoenix
+Response: {
+  "success": true,
+  "tracesGenerated": 4,
+  "workflowId": "test-workflow-123"
 }
 ```
 

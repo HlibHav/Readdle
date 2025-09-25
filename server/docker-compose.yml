@@ -1,0 +1,32 @@
+services:
+  phoenix:
+    build:
+      context: .
+      dockerfile: Dockerfile.phoenix
+    container_name: phoenix-observability
+    ports:
+      - "6006:6006"  # Phoenix UI
+      - "4317:4317"  # gRPC OTLP endpoint
+      - "4318:4318"  # HTTP OTLP endpoint
+    environment:
+      - PHOENIX_PROJECT_NAME=documents-browser-app
+      - PHOENIX_DATA_DIR=/app/data
+    volumes:
+      - phoenix_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+
+volumes:
+  phoenix_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
