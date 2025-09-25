@@ -318,6 +318,12 @@ export class RAGService {
       return strategyName;
     }
     
+    // Check if it's an agent strategy name that needs mapping
+    const legacyKey = this.getLegacyStrategyKey(strategyName);
+    if (this.strategies.has(legacyKey)) {
+      return legacyKey;
+    }
+    
     // Otherwise, find by name
     for (const [key, strategy] of this.strategies.entries()) {
       if (strategy.name === strategyName) {
