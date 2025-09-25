@@ -31,9 +31,9 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 
 <div align="center">
 
-[![TL;DR](https://img.shields.io/badge/📊_View_Interactive_Demo-blue?style=for-the-badge&logo=gamma)](https://gamma.app/docs/7xbn9ob9fs9wzwj)
+[![TL;DR](https://img.shields.io/badge/📊_View-blue?style=for-the-badge&logo=gamma)](https://gamma.app/docs/7xbn9ob9fs9wzwj)
 
-**🎯 [Click here to view the interactive TL;DR demo](https://gamma.app/docs/7xbn9ob9fs9wzwj)**
+**🎯 [Click here to view TL;DR](https://gamma.app/docs/7xbn9ob9fs9wzwj)**
 
 *Experience our AI-powered document management platform through this interactive presentation*
 
