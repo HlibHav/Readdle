@@ -1,4 +1,4 @@
-# 🚀 Documents Browser Demo - AI-Powered Document Management Platform
+# 🚀 Next gen AI agentic Web browser
 
 <div align="center">
 
