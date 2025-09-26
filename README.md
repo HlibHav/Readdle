@@ -1,4 +1,4 @@
-# 🚀 Next gen AI agentic Web browser
+# 🚀 Next gen AI-agentic Web browser
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 ![React](https://img.shields.io/badge/react-18.3.1-blue.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0.0-blue.svg)
 
-**An enterprise-grade AI-powered document management platform showcasing advanced RAG (Retrieval Augmented Generation) capabilities, intelligent file processing, and scalable microservices architecture.**
+**An enterprise-grade AI-agentic Web browser showcasing advanced RAG (Retrieval Augmented Generation) capabilities, intelligent file processing, and scalable microservices architecture.**
 
 [🔗 Live Demo](http://localhost:5173) | [📚 Documentation](./SECURITY.md) | [🏗️ Architecture](./AGENT_ARCHITECTURE.md)
 
