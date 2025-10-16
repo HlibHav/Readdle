@@ -277,24 +277,33 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
   }, [chatMessages, isLoading]);
 
   return (
-    <div className="w-96 flex flex-col h-full relative" data-testid="assistant-panel">
+    <div className="h-full flex flex-col" data-testid="assistant-panel">
       <GlassSurface 
         width="100%" 
         height="100%"
         borderRadius={0}
-        backgroundOpacity={0.5}
-        brightness={98}
+        backgroundOpacity={0.8}
+        brightness={70}
         opacity={0.95}
-        blur={20}
-        className="absolute inset-0"
-        style={{ backdropFilter: 'blur(20px) saturate(1.2)' }}
+        blur={15}
+        displace={0}
+        saturation={1.2}
+        distortionScale={-180}
+        redOffset={0}
+        greenOffset={10}
+        blueOffset={20}
+        xChannel="R"
+        yChannel="G"
+        mixBlendMode="difference"
+        className="absolute inset-0 border-l border-white/30"
+        style={{ backdropFilter: 'blur(15px) saturate(1.2)' }}
       >
         <div className="w-full h-full flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-white/20">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                <Sparkles size={20} className="text-documents-blue" />
+              <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
+                <Sparkles size={20} className="text-blue-300" />
                 <span>Assistant</span>
               </h2>
               <button
@@ -305,7 +314,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
               </button>
             </div>
             
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mt-2 text-sm text-gray-200">
               {cloudAI ? 'Using Cloud AI' : 'Using Local Processing'}
             </div>
           </div>
@@ -317,9 +326,9 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                 {/* Chat Settings */}
                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-medium text-gray-900">Chat with AI</h3>
+                    <h3 className="font-medium text-white">Chat with AI</h3>
                     {selectedRAGStrategy && (
-                      <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-700 rounded font-medium backdrop-blur-sm">
+                      <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-200 rounded font-medium backdrop-blur-sm">
                         {selectedRAGStrategy}
                       </span>
                     )}
@@ -329,7 +338,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                     className="p-1 hover:bg-white/50 rounded transition-colors"
                     title="Chat Settings"
                   >
-                    <Settings size={16} className="text-gray-500" />
+                    <Settings size={16} className="text-gray-300" />
                   </button>
                 </div>
 
@@ -361,7 +370,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                     </div>
                   )}
                   {chatMessages.length === 0 ? (
-                    <div className="text-center text-gray-500 text-sm py-8">
+                    <div className="text-center text-gray-300 text-sm py-8">
                       Start a conversation about this page
                     </div>
                   ) : (
@@ -374,7 +383,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                           className={`max-w-[80%] px-3 py-2 rounded-lg text-sm backdrop-blur-sm ${
                             message.type === 'user'
                               ? 'bg-documents-blue text-white'
-                              : 'bg-white/60 text-gray-900 border border-white/40'
+                              : 'bg-white/80 text-gray-900 border border-white/60'
                           }`}
                         >
                       <div className={`whitespace-pre-wrap ${
@@ -383,7 +392,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                         {message.type === 'assistant' ? (
                           message.content.split('\n').map((line, index) => {
                             if (line.startsWith('## ')) {
-                              return <h2 key={index} className="text-sm font-semibold text-gray-800 mt-2 mb-1">{line.substring(3)}</h2>;
+                              return <h2 key={index} className="text-sm font-semibold text-gray-900 mt-2 mb-1">{line.substring(3)}</h2>;
                             } else if (line.startsWith('• ')) {
                               return <div key={index} className="ml-2 mb-1">• {line.substring(2)}</div>;
                             } else if (line.trim() === '') {
@@ -397,7 +406,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                         )}
                       </div>
                         <div className={`text-xs mt-1 ${
-                          message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                          message.type === 'user' ? 'text-blue-100' : 'text-gray-600'
                         }`}>
                           {message.timestamp.toLocaleTimeString()}
                         </div>
@@ -407,7 +416,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                   )}
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="bg-white/60 border border-white/40 px-3 py-2 rounded-lg text-sm backdrop-blur-sm">
+                      <div className="bg-white/80 border border-white/60 px-3 py-2 rounded-lg text-sm backdrop-blur-sm">
                         <div className="flex items-center space-x-2">
                           <Loader2 size={16} className="animate-spin" />
                           <span>Thinking...</span>
@@ -427,7 +436,7 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                     onChange={(e) => setQuestion(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleRAGQuestion()}
                     placeholder="Ask anything about this page for comprehensive insights..."
-                    className="flex-1 px-3 py-2 bg-white/60 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-documents-blue focus:border-transparent text-sm backdrop-blur-sm"
+                    className="flex-1 px-3 py-2 bg-white/80 border border-white/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-documents-blue focus:border-transparent text-sm backdrop-blur-sm text-gray-900 placeholder-gray-600"
                   />
                   <button
                     onClick={handleRAGQuestion}
@@ -441,15 +450,15 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
 
                 {/* RAG Results Info */}
                 {!showRAGSettings && ragResult && (
-                  <div className="mt-2 p-2 bg-white/40 border border-white/30 rounded-lg flex-shrink-0 backdrop-blur-sm">
+                  <div className="mt-2 p-2 bg-white/60 border border-white/50 rounded-lg flex-shrink-0 backdrop-blur-sm">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-500">Strategy:</span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-700 rounded font-medium">
+                        <span className="text-gray-600">Strategy:</span>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-800 rounded font-medium">
                           {ragResult.strategy}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-3 text-gray-500">
+                      <div className="flex items-center space-x-3 text-gray-600">
                         <span>Confidence: {Math.round(ragResult.confidence * 100)}%</span>
                         <span>Time: {ragResult.processingTime}ms</span>
                       </div>

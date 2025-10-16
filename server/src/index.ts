@@ -42,7 +42,7 @@ dotenv.config();
 phoenixInstrumentation.initialize();
 
 const app = express();
-const PORT = process.env.PORT || 5174;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '100mb' })); // Increase limit for large PDF data

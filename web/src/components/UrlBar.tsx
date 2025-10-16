@@ -39,6 +39,13 @@ export function UrlBar({
 }: UrlBarProps) {
   const [isFocused, setIsFocused] = useState(false);
 
+  console.log('UrlBar render:', { 
+    hasCurrentPage, 
+    currentPage: !!currentPage, 
+    incognito,
+    showAssistant 
+  });
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {
       if (isUrl(url)) {
@@ -142,8 +149,8 @@ export function UrlBar({
         />
       )}
 
-      {/* Assistant Button - only show when there's a current page */}
-      {hasCurrentPage && (
+      {/* Assistant Button - show when there's a current page */}
+      {(hasCurrentPage || currentPage) && (
         <button
           onClick={onAssistantToggle}
           disabled={incognito}
@@ -151,7 +158,7 @@ export function UrlBar({
             incognito
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : showAssistant
-              ? 'bg-documents-blue text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
           title={incognito ? 'Assistant disabled in incognito mode' : 'Open Assistant'}

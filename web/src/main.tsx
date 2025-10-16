@@ -21,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           style: {
             background: '#363636',
             color: '#fff',
+            zIndex: 50,
           },
         }}
       />

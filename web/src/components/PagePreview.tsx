@@ -5,10 +5,12 @@ interface PagePreviewProps {
 }
 
 export function PagePreview({ page }: PagePreviewProps) {
+
   return (
     <div className="h-full bg-white">
       {/* Page Content */}
-      <div className="p-6">
+      <div className="h-full overflow-auto">
+        <div className="p-6">
         {page.content && page.content.trim() ? (
           <div 
             className="prose prose-gray max-w-none"
@@ -50,6 +52,7 @@ export function PagePreview({ page }: PagePreviewProps) {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

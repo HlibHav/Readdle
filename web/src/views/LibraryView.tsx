@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../state/store';
 import { FileCard } from '../components/FileCard';
 import { FolderSidebar } from '../components/FolderSidebar';
@@ -9,7 +9,15 @@ export function LibraryView() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
-  const { files, folders, searchQuery } = useAppStore();
+  const { files, folders, searchQuery, setSearchQuery } = useAppStore();
+
+  // Clear search query when leaving Library view
+  useEffect(() => {
+    return () => {
+      // Clean up: clear search query when unmounting
+      setSearchQuery('');
+    };
+  }, [setSearchQuery]);
 
   // Filter files based on search, folder, and tag
   const filteredFiles = files.filter(file => {

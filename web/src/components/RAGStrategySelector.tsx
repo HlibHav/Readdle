@@ -154,36 +154,36 @@ export function RAGStrategySelector() {
     <div className="space-y-4" data-testid="rag-strategy-selector">
       {/* Device Info */}
       {deviceInfo && (
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
-            <Settings size={16} />
+        <div className="p-4 bg-white/10 border border-white/20 rounded-lg backdrop-blur-sm">
+          <h3 className="font-medium text-white mb-3 flex items-center space-x-2">
+            <Settings size={16} className="text-blue-300" />
             <span>Device & RAG Configuration</span>
           </h3>
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center space-x-2">
               {getDeviceIcon()}
-              <span className="text-gray-600">
+              <span className="text-gray-200">
                 {deviceInfo.isMobile ? 'Mobile' : deviceInfo.isTablet ? 'Tablet' : 'Desktop'}
               </span>
             </div>
             
             <div className="flex items-center space-x-2">
               {getConnectionIcon()}
-              <span className="text-gray-600">
+              <span className="text-gray-200">
                 {deviceInfo.hasInternet ? 'Online' : 'Offline'}
               </span>
             </div>
             
             <div className="flex items-center space-x-2">
               {getProcessingIcon()}
-              <span className="text-gray-600">
+              <span className="text-gray-200">
                 {deviceInfo.processingPower} power
               </span>
             </div>
             
             <div className="flex items-center space-x-2">
-              <span className="text-gray-600">
+              <span className="text-gray-200">
                 {Math.round(deviceInfo.memoryAvailable / 1024)}GB RAM
               </span>
             </div>
@@ -192,12 +192,12 @@ export function RAGStrategySelector() {
               {openelmAvailable ? (
                 <>
                   <Zap size={16} className="text-orange-500" />
-                  <span className="text-orange-600 text-sm">OpenELM Available</span>
+                  <span className="text-orange-300 text-sm">OpenELM Available</span>
                 </>
               ) : (
                 <>
                   <Zap size={16} className="text-gray-400" />
-                  <span className="text-gray-500 text-sm">OpenELM Unavailable</span>
+                  <span className="text-gray-400 text-sm">OpenELM Unavailable</span>
                 </>
               )}
             </div>
@@ -207,7 +207,7 @@ export function RAGStrategySelector() {
 
       {/* Strategy Selection */}
       <div className="space-y-3">
-        <h4 className="font-medium text-gray-900">RAG Strategy</h4>
+        <h4 className="font-medium text-white">RAG Strategy</h4>
         
         <div className="space-y-2">
           {/* OpenELM Strategies Section */}
@@ -215,7 +215,7 @@ export function RAGStrategySelector() {
             <>
               <div className="flex items-center space-x-2 mb-3">
                 <Zap size={16} className="text-orange-500" />
-                <span className="text-sm font-medium text-orange-700">Apple OpenELM Models</span>
+                <span className="text-sm font-medium text-orange-300">Apple OpenELM Models</span>
               </div>
               {openelmStrategies.map((strategy) => {
                 const isSelected = selectedStrategy === strategy.name;
@@ -224,12 +224,12 @@ export function RAGStrategySelector() {
                 return (
                   <label
                     key={strategy.name}
-                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 backdrop-blur-sm ${
                       isSelected
-                        ? 'border-orange-300 bg-orange-50 shadow-sm ring-2 ring-orange-100'
+                        ? 'border-orange-400/50 bg-orange-500/20 shadow-lg ring-2 ring-orange-300/30'
                         : isCurrentlyUsed
-                        ? 'border-orange-200 bg-orange-25 shadow-sm'
-                        : 'border-gray-200 hover:border-orange-200 hover:shadow-sm'
+                        ? 'border-orange-300/40 bg-orange-500/10 shadow-md'
+                        : 'border-white/20 bg-white/5 hover:border-orange-300/40 hover:bg-orange-500/10 hover:shadow-md'
                     }`}
                   >
                     <input
@@ -249,21 +249,21 @@ export function RAGStrategySelector() {
                       <div className="flex items-center space-x-2">
                         {getProviderIcon(strategy)}
                         <span className={`font-medium ${
-                          isSelected ? 'text-orange-700' : 'text-gray-900'
+                          isSelected ? 'text-orange-200' : 'text-white'
                         }`}>
                           {strategy.name}
                         </span>
                         {getProviderBadge(strategy)}
                         {strategy.deviceOptimized && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                          <span className="px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded backdrop-blur-sm">
                             Device Optimized
                           </span>
                         )}
                       </div>
                       
-                      <p className="text-sm text-gray-600 mt-1">{strategy.description}</p>
+                      <p className="text-sm text-gray-300 mt-1">{strategy.description}</p>
                       
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
                         <span>Chunk: {strategy.chunkSize}</span>
                         <span>Model: {strategy.embeddingModel}</span>
                         <span>Store: {strategy.vectorStore}</span>
@@ -277,9 +277,9 @@ export function RAGStrategySelector() {
               
               {/* Separator */}
               <div className="flex items-center space-x-2 my-3">
-                <div className="flex-1 h-px bg-gray-200"></div>
-                <span className="text-xs text-gray-500 px-2">Standard Strategies</span>
-                <div className="flex-1 h-px bg-gray-200"></div>
+                <div className="flex-1 h-px bg-white/20"></div>
+                <span className="text-xs text-gray-400 px-2">Standard Strategies</span>
+                <div className="flex-1 h-px bg-white/20"></div>
               </div>
             </>
           )}
@@ -292,12 +292,12 @@ export function RAGStrategySelector() {
             return (
               <label
                 key={strategy.name}
-                className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 backdrop-blur-sm ${
                   isSelected
-                    ? 'border-documents-blue bg-blue-50 shadow-sm ring-2 ring-blue-100'
+                    ? 'border-blue-400/50 bg-blue-500/20 shadow-lg ring-2 ring-blue-300/30'
                     : isCurrentlyUsed
-                    ? 'border-blue-300 bg-blue-25 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    ? 'border-blue-300/40 bg-blue-500/10 shadow-md'
+                    : 'border-white/20 bg-white/5 hover:border-blue-300/40 hover:bg-blue-500/10 hover:shadow-md'
                 }`}
               >
               <input
@@ -317,21 +317,21 @@ export function RAGStrategySelector() {
                 <div className="flex items-center space-x-2">
                   {getProviderIcon(strategy)}
                   <span className={`font-medium ${
-                    isSelected ? 'text-documents-blue' : 'text-gray-900'
+                    isSelected ? 'text-blue-200' : 'text-white'
                   }`}>
                     {strategy.name}
                   </span>
                   {getProviderBadge(strategy)}
                   {strategy.deviceOptimized && (
-                    <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                    <span className="px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded backdrop-blur-sm">
                       Device Optimized
                     </span>
                   )}
                 </div>
                 
-                <p className="text-sm text-gray-600 mt-1">{strategy.description}</p>
+                <p className="text-sm text-gray-300 mt-1">{strategy.description}</p>
                 
-                <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
                   <span>Chunk: {strategy.chunkSize}</span>
                   <span>Model: {strategy.embeddingModel}</span>
                   <span>Store: {strategy.vectorStore}</span>
@@ -346,10 +346,10 @@ export function RAGStrategySelector() {
       </div>
 
       {/* Cloud AI Toggle */}
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-between p-3 bg-white/10 border border-white/20 rounded-lg backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Cloud AI</span>
-          <span className="text-xs text-gray-500">
+          <span className="text-sm font-medium text-white">Cloud AI</span>
+          <span className="text-xs text-gray-300">
             {cloudAI ? 'Enabled' : 'Disabled (Local processing)'}
           </span>
         </div>
@@ -357,7 +357,7 @@ export function RAGStrategySelector() {
         <button
           onClick={() => setCloudAI(!cloudAI)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            cloudAI ? 'bg-documents-blue' : 'bg-gray-200'
+            cloudAI ? 'bg-blue-500' : 'bg-white/20'
           }`}
         >
           <span

@@ -40,7 +40,10 @@ export function BrowserView() {
     searchQuery,
     documentResults: documentResults.length,
     webResults: webResults.length,
-    isSearching
+    isSearching,
+    willRenderPagePreview: !!currentPage,
+    willRenderSearchResults: !currentPage && showSearchResults,
+    willRenderTools: !currentPage && !showSearchResults
   });
 
   console.log('BrowserView render condition:', {
@@ -50,6 +53,28 @@ export function BrowserView() {
     willShowTools: !currentPage && !showSearchResults
   });
 
+  const handleLoadUrl = async (url: string) => {
+    const normalizedUrl = normalizeUrl(url);
+    try {
+      setLoading(true);
+      setShowSearchResults(false);
+      setSelectedResult(null);
+      
+      const content = await extractPageContent(normalizedUrl);
+      setCurrentPage({
+        ...content,
+        url: normalizedUrl,
+      });
+      
+      toast.success('Page loaded successfully');
+    } catch (error) {
+      console.error('Error loading page:', error);
+      toast.error('Failed to load page. Please check the URL and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       toast.error('Please enter a search query or URL');
@@ -58,30 +83,15 @@ export function BrowserView() {
 
     // Check if it's a URL or search query
     if (isUrl(query)) {
-      // It's a URL, load the page with normalized URL
-      const normalizedUrl = normalizeUrl(query);
-      try {
-        setLoading(true);
-        setShowSearchResults(false);
-        
-        const content = await extractPageContent(normalizedUrl);
-        setCurrentPage({
-          ...content,
-          url: normalizedUrl,
-        });
-        
-        toast.success('Page loaded successfully');
-      } catch (error) {
-        console.error('Error loading page:', error);
-        toast.error('Failed to load page. Please check the URL and try again.');
-      } finally {
-        setLoading(false);
-      }
+      // It's a URL, load the page
+      await handleLoadUrl(query);
     } else {
       // It's a search query
       console.log('🔍 Starting search for:', query);
       setSearchQuery(query);
       setShowSearchResults(true);
+      setSelectedResult(null);
+      setCurrentPage(null);
       setIsSearching(true);
       addToSearchHistory(query);
 
@@ -103,14 +113,23 @@ export function BrowserView() {
     }
   };
 
-  // Handle search from navigation bar
+  // Handle URL or search from navigation bar
   useEffect(() => {
-    const searchQuery = location.state?.search;
-    if (searchQuery) {
-      handleSearch(searchQuery);
+    const urlFromState = location.state?.url;
+    const searchFromState = location.state?.search;
+    
+    if (urlFromState) {
+      // Load URL directly
+      handleLoadUrl(urlFromState);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    } else if (searchFromState) {
+      // Perform search
+      handleSearch(searchFromState);
       // Clear the state to prevent re-triggering
       window.history.replaceState({}, document.title);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   const handleAssistantToggle = () => {
@@ -136,130 +155,127 @@ export function BrowserView() {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Main Browser Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Page Preview, Search Results, Content Display, or Tools */}
-        <div className="flex-1 overflow-auto no-scrollbar">
-          {currentPage ? (
-            <PagePreview page={currentPage} />
-          ) : selectedResult ? (
-            <div className="h-full bg-white flex flex-col">
-              {/* Content Display */}
-              <div className="flex-1 overflow-hidden">
-                {'url' in selectedResult && selectedResult.url ? (
-                  // Web result content - display full page in iframe
-                  <div className="h-full bg-white">
-                    <IframeWithFallback
-                      src={selectedResult.url}
-                      className="h-full"
-                    />
-                  </div>
-                ) : (
-                  // Document result content
-                  <div className="p-6 h-full overflow-auto no-scrollbar">
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <span className="text-2xl">📄</span>
-                      </div>
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                          {selectedResult.name}
-                        </h1>
-                        <div className="text-sm text-gray-500">
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                            {selectedResult.type.toUpperCase()}
-                          </span>
-                          <span className="ml-2">{selectedResult.folder}</span>
-                          <span className="ml-2">{new Date(selectedResult.addedDate).toLocaleDateString()}</span>
-                        </div>
+    <div className="h-full flex flex-col">
+      {/* Page Preview, Search Results, Content Display, or Tools */}
+      <div className="flex-1 overflow-auto no-scrollbar">
+        {currentPage ? (
+          (() => {
+            console.log('Rendering PagePreview with page:', currentPage);
+            return (
+              <PagePreview 
+                page={currentPage} 
+              />
+            );
+          })()
+        ) : selectedResult ? (
+          <div className="h-full bg-white flex flex-col">
+            {/* Content Display */}
+            <div className="flex-1 overflow-hidden">
+              {'url' in selectedResult && selectedResult.url ? (
+                // Web result content - display full page in iframe
+                <div className="h-full bg-white">
+                  <IframeWithFallback
+                    src={selectedResult.url}
+                    className="h-full"
+                  />
+                </div>
+              ) : (
+                // Document result content
+                <div className="p-6 h-full overflow-auto no-scrollbar">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <span className="text-2xl">📄</span>
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        {selectedResult.name}
+                      </h1>
+                      <div className="text-sm text-gray-500">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                          {selectedResult.type.toUpperCase()}
+                        </span>
+                        <span className="ml-2">{selectedResult.folder}</span>
+                        <span className="ml-2">{new Date(selectedResult.addedDate).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    
-                    {selectedResult.type === 'pdf' && selectedResult.url ? (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-2">Preview</h3>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <iframe
-                            src={selectedResult.url}
-                            className="w-full h-96"
-                            title={`Preview of ${selectedResult.name}`}
-                            sandbox="allow-same-origin allow-scripts"
-                          />
-                        </div>
-                      </div>
-                    ) : selectedResult.type === 'pdf' && selectedResult.content ? (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-2">Preview</h3>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <iframe
-                            src={`data:application/pdf;base64,${selectedResult.content}`}
-                            className="w-full h-96"
-                            title={`Preview of ${selectedResult.name}`}
-                            sandbox="allow-same-origin allow-scripts"
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-                    
-                    {selectedResult.highlightedSnippet ? (
-                      <div className="prose prose-gray max-w-none">
-                        <h3 className="text-lg font-semibold mb-2">Content</h3>
-                        <div 
-                          dangerouslySetInnerHTML={{
-                            __html: selectedResult.highlightedSnippet.replace(
-                              /<mark>/g, '<mark class="bg-yellow-200 px-1 rounded">'
-                            )
-                          }}
+                  </div>
+                  
+                  {selectedResult.type === 'pdf' && selectedResult.url ? (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Preview</h3>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <iframe
+                          src={selectedResult.url}
+                          className="w-full h-96"
+                          title={`Preview of ${selectedResult.name}`}
+                          sandbox="allow-same-origin allow-scripts"
                         />
                       </div>
-                    ) : (
-                      <div className="prose prose-gray max-w-none">
-                        <h3 className="text-lg font-semibold mb-2">Content</h3>
-                        <p>{selectedResult.snippet}</p>
+                    </div>
+                  ) : selectedResult.type === 'pdf' && selectedResult.content ? (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Preview</h3>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`data:application/pdf;base64,${selectedResult.content}`}
+                          className="w-full h-96"
+                          title={`Preview of ${selectedResult.name}`}
+                          sandbox="allow-same-origin allow-scripts"
+                        />
                       </div>
-                    )}
-                    
-                    {selectedResult.tags.length > 0 && (
-                      <div className="mt-6">
-                        <h3 className="text-lg font-semibold mb-2">Tags</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedResult.tags.map((tag, index) => (
-                            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
+                    </div>
+                  ) : null}
+                  
+                  {selectedResult.highlightedSnippet ? (
+                    <div className="prose prose-gray max-w-none">
+                      <h3 className="text-lg font-semibold mb-2">Content</h3>
+                      <div 
+                        dangerouslySetInnerHTML={{
+                          __html: selectedResult.highlightedSnippet.replace(
+                            /<mark>/g, '<mark class="bg-yellow-200 px-1 rounded">'
+                          )
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="prose prose-gray max-w-none">
+                      <h3 className="text-lg font-semibold mb-2">Content</h3>
+                      <p>{selectedResult.snippet}</p>
+                    </div>
+                  )}
+                  
+                  {selectedResult.tags.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-2">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedResult.tags.map((tag, index) => (
+                          <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
+                            {tag}
+                          </span>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          ) : showSearchResults ? (
-            <InlineSearchResults
-              query={searchQuery}
-              documentResults={documentResults}
-              webResults={webResults}
-              isSearching={isSearching}
-              onResultClick={handleResultClick}
-            />
-          ) : (
-            <div className="h-full">
-              {/* Tools Section */}
-              <ToolsSection />
-            </div>
-          )}
-        </div>
-
-        {/* Assistant Panel */}
-                {showAssistant && currentPage && (
-                  <AssistantPanel
-                    page={currentPage}
-                    onClose={() => setShowAssistant(false)}
-                  />
-                )}
+          </div>
+        ) : showSearchResults ? (
+          <InlineSearchResults
+            query={searchQuery}
+            documentResults={documentResults}
+            webResults={webResults}
+            isSearching={isSearching}
+            onResultClick={handleResultClick}
+          />
+        ) : (
+          <div className="h-full">
+            {/* Tools Section */}
+            <ToolsSection />
+          </div>
+        )}
       </div>
+
     </div>
   );
 }
