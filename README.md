@@ -10,7 +10,7 @@
 
 **An enterprise-grade AI-agentic Web browser showcasing advanced RAG (Retrieval Augmented Generation) capabilities, intelligent file processing, and scalable microservices architecture.**
 
-[🔗 Live Demo](http://localhost:5173) | [📚 Documentation](./SECURITY.md) | [🏗️ Architecture](./AGENT_ARCHITECTURE.md)
+[🔗 Live Demo](http://localhost:5173) | [📚 Documentation](./SECURITY.md) | [🏗️ Architecture](./ARCHITECTURE.md) | [🎨 Design System](./DESIGN_SYSTEM.md)
 
 </div>
 
@@ -744,6 +744,15 @@ Response: {
 - **Testing**: Jest, React Testing Library, and E2E testing
 - **Documentation**: Comprehensive API documentation and guides
 - **Security**: Automated security scanning and dependency updates
+
+### **📚 Documentation Resources**
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Complete system architecture and component reference
+- **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)**: Comprehensive design system guide for non-designers
+- **[TAILWIND_QUICK_REF.md](./TAILWIND_QUICK_REF.md)**: Quick reference for Tailwind CSS classes
+- **[SECURITY.md](./SECURITY.md)**: Security guidelines and best practices
+- **[SEARCH_INTEGRATION.md](./SEARCH_INTEGRATION.md)**: Search system implementation details
+- **[SHARED_MEMORY.md](./SHARED_MEMORY.md)**: Shared memory service documentation
+- **[ONBOARDING_SYSTEM.md](./ONBOARDING_SYSTEM.md)**: User onboarding documentation
 
 ### **Community & Support**
 - **GitHub Issues**: Bug reports and feature requests

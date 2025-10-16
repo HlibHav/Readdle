@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../state/store';
-import { UrlBar } from '../components/UrlBar';
 import { PagePreview } from '../components/PagePreview';
 import { AssistantPanel } from '../components/AssistantPanel';
 import { ToolsSection } from '../components/ToolsSection';
@@ -12,7 +12,7 @@ import { DocumentSearchResult, WebSearchResult } from '../lib/types';
 import toast from 'react-hot-toast';
 
 export function BrowserView() {
-  const [url, setUrl] = useState('');
+  const location = useLocation();
   const [showAssistant, setShowAssistant] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedResult, setSelectedResult] = useState<DocumentSearchResult | WebSearchResult | null>(null);
@@ -103,38 +103,15 @@ export function BrowserView() {
     }
   };
 
-  const handleGo = async () => {
-    if (!url.trim()) {
-      toast.error('Please enter a URL or search query');
-      return;
+  // Handle search from navigation bar
+  useEffect(() => {
+    const searchQuery = location.state?.search;
+    if (searchQuery) {
+      handleSearch(searchQuery);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
     }
-
-    // Check if it's a URL or search query
-    if (isUrl(url)) {
-      // It's a URL, load the page with normalized URL
-      const normalizedUrl = normalizeUrl(url);
-      try {
-        setLoading(true);
-        setShowSearchResults(false);
-        
-        const content = await extractPageContent(normalizedUrl);
-        setCurrentPage({
-          ...content,
-          url: normalizedUrl,
-        });
-        
-        toast.success('Page loaded successfully');
-      } catch (error) {
-        console.error('Error loading page:', error);
-        toast.error('Failed to load page. Please check the URL and try again.');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // It's a search query
-      await handleSearch(url);
-    }
-  };
+  }, [location.state]);
 
   const handleAssistantToggle = () => {
     if (incognito) {
@@ -162,30 +139,8 @@ export function BrowserView() {
     <div className="flex h-screen">
       {/* Main Browser Area */}
       <div className="flex-1 flex flex-col">
-        {/* URL Bar */}
-        <div className="p-4 border-b border-gray-200">
-            <UrlBar
-              url={url}
-              setUrl={setUrl}
-              onGo={handleGo}
-              onSearch={handleSearch}
-              isLoading={isLoading}
-              showAssistant={showAssistant}
-              onAssistantToggle={handleAssistantToggle}
-              incognito={incognito}
-              hasCurrentPage={!!currentPage}
-              currentPage={currentPage ? {
-                url: currentPage.url,
-                title: currentPage.title,
-                content: currentPage.content
-              } : undefined}
-              hasSelectedResult={!!selectedResult}
-              onBackToResults={handleBackToResults}
-            />
-        </div>
-
         {/* Page Preview, Search Results, Content Display, or Tools */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto no-scrollbar">
           {currentPage ? (
             <PagePreview page={currentPage} />
           ) : selectedResult ? (
@@ -202,7 +157,7 @@ export function BrowserView() {
                   </div>
                 ) : (
                   // Document result content
-                  <div className="p-6 h-full overflow-auto">
+                  <div className="p-6 h-full overflow-auto no-scrollbar">
                     <div className="flex items-center space-x-3 mb-4">
                       <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                         <span className="text-2xl">📄</span>

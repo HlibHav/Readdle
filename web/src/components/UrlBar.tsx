@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Loader2, ArrowLeft } from 'lucide-react';
 import { PdfDownloadButton } from './PdfDownloadButton';
 import { isUrl, normalizeUrl } from '../lib/urlUtils';
+import GlassSurface from './GlassSurface';
 
 interface UrlBarProps {
   url: string;
@@ -62,37 +63,48 @@ export function UrlBar({
   return (
     <div className="flex items-center space-x-3" data-testid="url-bar">
       <div className="flex-1 relative">
-        <div className={`flex items-center border-2 rounded-lg transition-colors ${
-          isFocused 
-            ? 'border-documents-blue shadow-sm' 
-            : 'border-gray-300 hover:border-gray-400'
-        }`}>
-          {/* Back Arrow - only show when there's a selected result */}
-          {hasSelectedResult && onBackToResults && (
-            <button
-              onClick={onBackToResults}
-              className="pl-3 pr-2 text-gray-500 hover:text-gray-700 transition-colors"
-              title="Back to search results"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-          
-          <div className={`${hasSelectedResult ? 'pl-2' : 'pl-3'} pr-2 text-gray-400`}>
-            <Search size={20} />
+        <GlassSurface 
+          width="100%" 
+          height={56}
+          borderRadius={25}
+          backgroundOpacity={0.3}
+          brightness={98}
+          opacity={0.9}
+          blur={15}
+          className={`transition-all ${
+            isFocused 
+              ? 'ring-2 ring-documents-blue' 
+              : ''
+          }`}
+        >
+          <div className="flex items-center w-full h-full">
+            {/* Back Arrow - only show when there's a selected result */}
+            {hasSelectedResult && onBackToResults && (
+              <button
+                onClick={onBackToResults}
+                className="pl-3 pr-2 text-gray-500 hover:text-gray-700 transition-colors"
+                title="Back to search results"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            
+            <div className={`${hasSelectedResult ? 'pl-2' : 'pl-3'} pr-2 text-gray-400`}>
+              <Search size={20} />
+            </div>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyPress={handleKeyPress}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={getPlaceholder()}
+              className="flex-1 py-3 px-2 bg-transparent border-0 outline-none text-gray-900 placeholder-gray-500"
+              disabled={isLoading}
+            />
           </div>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyPress={handleKeyPress}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={getPlaceholder()}
-            className="flex-1 py-3 px-2 border-0 outline-none text-gray-900 placeholder-gray-500"
-            disabled={isLoading}
-          />
-        </div>
+        </GlassSurface>
       </div>
       
       <button

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../state/store';
 import toast from 'react-hot-toast';
+import AnimatedContent from './AnimatedContent';
 
 interface Tool {
   id: string;
@@ -316,7 +317,7 @@ export function ToolsSection() {
     : tools.filter(tool => tool.category === selectedCategory);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6 overflow-x-hidden">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
@@ -346,11 +347,22 @@ export function ToolsSection() {
 
       {/* Tools Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredTools.map((tool) => (
-          <div
+        {filteredTools.map((tool, index) => (
+          <AnimatedContent
             key={tool.id}
+            distance={60}
+            direction="vertical"
+            reverse={false}
+            duration={0.6}
+            ease="power3.out"
+            initialOpacity={0}
+            animateOpacity
+            scale={0.95}
+            delay={index * 0.05}
+          >
+            <div
             onClick={tool.action}
-            className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer group"
+            className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer group h-full"
           >
             <div className="flex items-center mb-3">
               <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-blue-50 transition-colors">
@@ -362,12 +374,22 @@ export function ToolsSection() {
             </div>
             <p className="text-sm text-gray-600">{tool.description}</p>
           </div>
+          </AnimatedContent>
         ))}
       </div>
 
       {/* Request Tool Section */}
       <div className="mt-12 text-center">
-        <div className="bg-gray-50 rounded-lg p-8">
+        <AnimatedContent
+          distance={80}
+          direction="vertical"
+          duration={0.8}
+          ease="power3.out"
+          initialOpacity={0}
+          animateOpacity
+          scale={0.98}
+        >
+          <div className="bg-gray-50 rounded-lg p-8">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">
             Didn't find the tool you need?
           </h3>
@@ -375,9 +397,10 @@ export function ToolsSection() {
             Tell us more about your case so we could better understand your requirements.
           </p>
           <button className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-            Request a Tool
-          </button>
-        </div>
+              Request a Tool
+            </button>
+          </div>
+        </AnimatedContent>
       </div>
     </div>
   );

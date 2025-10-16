@@ -155,7 +155,7 @@ export function SearchResultsView() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto no-scrollbar">
         {selectedResult ? (
           // Show selected result content inline
           <div className="h-full flex flex-col">
@@ -187,7 +187,7 @@ export function SearchResultsView() {
                       </div>
                     </div>
                     
-                    <div className="flex-1 overflow-auto p-6">
+                    <div className="flex-1 overflow-auto p-6 no-scrollbar">
                       {selectedResult.type.toLowerCase() === 'pdf' ? (
                         // PDF content - Embed blob if available
                         <div className="h-full relative">

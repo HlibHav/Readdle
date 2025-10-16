@@ -6,6 +6,7 @@ import { useAppStore } from '../state/store';
 import { RAGStrategySelector } from './RAGStrategySelector';
 import { ChatActions } from './ChatActions';
 import toast from 'react-hot-toast';
+import GlassSurface from './GlassSurface';
 
 interface AssistantPanelProps {
   page: PageContent;
@@ -276,94 +277,106 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
   }, [chatMessages, isLoading]);
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full" data-testid="assistant-panel">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-            <Sparkles size={20} className="text-documents-blue" />
-            <span>Assistant</span>
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="mt-2 text-sm text-gray-600">
-          {cloudAI ? 'Using Cloud AI' : 'Using Local Processing'}
-        </div>
-      </div>
-
-
-      {/* Content */}
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="flex flex-col h-full">
-            {/* Chat Settings */}
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-medium text-gray-900">Chat with AI</h3>
-                {selectedRAGStrategy && (
-                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded font-medium">
-                    {selectedRAGStrategy}
-                  </span>
-                )}
-              </div>
+    <div className="w-96 flex flex-col h-full relative" data-testid="assistant-panel">
+      <GlassSurface 
+        width="100%" 
+        height="100%"
+        borderRadius={0}
+        backgroundOpacity={0.5}
+        brightness={98}
+        opacity={0.95}
+        blur={20}
+        className="absolute inset-0"
+        style={{ backdropFilter: 'blur(20px) saturate(1.2)' }}
+      >
+        <div className="w-full h-full flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-white/20">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <Sparkles size={20} className="text-documents-blue" />
+                <span>Assistant</span>
+              </h2>
               <button
-                onClick={() => setShowRAGSettings(!showRAGSettings)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                title="Chat Settings"
+                onClick={onClose}
+                className="p-1 hover:bg-white/50 rounded-lg transition-colors"
               >
-                <Settings size={16} className="text-gray-500" />
+                <X size={20} />
               </button>
             </div>
+            
+            <div className="mt-2 text-sm text-gray-600">
+              {cloudAI ? 'Using Cloud AI' : 'Using Local Processing'}
+            </div>
+          </div>
 
-            {showRAGSettings && (
-              <div className="mb-4 flex-1 overflow-y-auto">
-                <RAGStrategySelector />
-              </div>
-            )}
 
-            {/* Chat Actions */}
-            {!showRAGSettings && !actionsUsed && (
-              <ChatActions
-                onSummarize={handleSummarizeAction}
-                onTranslate={handleTranslateAction}
-                onAnalyze={handleAnalyzeAction}
-                onCreateTodos={handleCreateTodosAction}
-                isLoading={isLoading}
-              />
-            )}
-
-            {/* Chat Messages */}
-            {!showRAGSettings && (
-              <div ref={chatMessagesRef} className="flex-1 overflow-y-auto space-y-3 mb-4 min-h-0">
-              {strategyChangeNotification && (
-                <div className="flex justify-center">
-                  <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
-                    {strategyChangeNotification}
+          {/* Content */}
+          <div className="flex-1 p-4 overflow-hidden">
+            <div className="flex flex-col h-full">
+                {/* Chat Settings */}
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-medium text-gray-900">Chat with AI</h3>
+                    {selectedRAGStrategy && (
+                      <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-700 rounded font-medium backdrop-blur-sm">
+                        {selectedRAGStrategy}
+                      </span>
+                    )}
                   </div>
-                </div>
-              )}
-              {chatMessages.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm py-8">
-                  Start a conversation about this page
-                </div>
-              ) : (
-                chatMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  <button
+                    onClick={() => setShowRAGSettings(!showRAGSettings)}
+                    className="p-1 hover:bg-white/50 rounded transition-colors"
+                    title="Chat Settings"
                   >
-                    <div
-                      className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
-                        message.type === 'user'
-                          ? 'bg-documents-blue text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}
-                    >
+                    <Settings size={16} className="text-gray-500" />
+                  </button>
+                </div>
+
+                {showRAGSettings && (
+                  <div className="mb-4 flex-1 overflow-y-auto">
+                    <RAGStrategySelector />
+                  </div>
+                )}
+
+                {/* Chat Actions */}
+                {!showRAGSettings && !actionsUsed && (
+                  <ChatActions
+                    onSummarize={handleSummarizeAction}
+                    onTranslate={handleTranslateAction}
+                    onAnalyze={handleAnalyzeAction}
+                    onCreateTodos={handleCreateTodosAction}
+                    isLoading={isLoading}
+                  />
+                )}
+
+                {/* Chat Messages */}
+                {!showRAGSettings && (
+                  <div ref={chatMessagesRef} className="flex-1 overflow-y-auto space-y-3 mb-4 min-h-0">
+                  {strategyChangeNotification && (
+                    <div className="flex justify-center">
+                      <div className="px-3 py-2 bg-blue-500/20 text-blue-700 rounded-lg text-sm font-medium backdrop-blur-sm">
+                        {strategyChangeNotification}
+                      </div>
+                    </div>
+                  )}
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center text-gray-500 text-sm py-8">
+                      Start a conversation about this page
+                    </div>
+                  ) : (
+                    chatMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] px-3 py-2 rounded-lg text-sm backdrop-blur-sm ${
+                            message.type === 'user'
+                              ? 'bg-documents-blue text-white'
+                              : 'bg-white/60 text-gray-900 border border-white/40'
+                          }`}
+                        >
                       <div className={`whitespace-pre-wrap ${
                         message.type === 'assistant' ? 'prose prose-sm max-w-none' : ''
                       }`}>
@@ -383,68 +396,70 @@ export function AssistantPanel({ page, onClose }: AssistantPanelProps) {
                           message.content
                         )}
                       </div>
-                      <div className={`text-xs mt-1 ${
-                        message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString()}
+                        <div className={`text-xs mt-1 ${
+                          message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                  )}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white/60 border border-white/40 px-3 py-2 rounded-lg text-sm backdrop-blur-sm">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Thinking...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  </div>
+                )}
+
+                {/* Chat Input */}
+                {!showRAGSettings && (
+                  <div className="flex space-x-2 flex-shrink-0">
+                  <input
+                    type="text"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleRAGQuestion()}
+                    placeholder="Ask anything about this page for comprehensive insights..."
+                    className="flex-1 px-3 py-2 bg-white/60 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-documents-blue focus:border-transparent text-sm backdrop-blur-sm"
+                  />
+                  <button
+                    onClick={handleRAGQuestion}
+                    disabled={isLoading || !question.trim()}
+                    className="px-4 py-2 bg-documents-blue text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <MessageSquare size={16} />
+                  </button>
+                  </div>
+                )}
+
+                {/* RAG Results Info */}
+                {!showRAGSettings && ragResult && (
+                  <div className="mt-2 p-2 bg-white/40 border border-white/30 rounded-lg flex-shrink-0 backdrop-blur-sm">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-gray-500">Strategy:</span>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-700 rounded font-medium">
+                          {ragResult.strategy}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3 text-gray-500">
+                        <span>Confidence: {Math.round(ragResult.confidence * 100)}%</span>
+                        <span>Time: {ragResult.processingTime}ms</span>
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 px-3 py-2 rounded-lg text-sm">
-                    <div className="flex items-center space-x-2">
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Thinking...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+                )}
               </div>
-            )}
-
-            {/* Chat Input */}
-            {!showRAGSettings && (
-              <div className="flex space-x-2 flex-shrink-0">
-              <input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleRAGQuestion()}
-                placeholder="Ask anything about this page for comprehensive insights..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-documents-blue focus:border-transparent text-sm"
-              />
-              <button
-                onClick={handleRAGQuestion}
-                disabled={isLoading || !question.trim()}
-                className="px-4 py-2 bg-documents-blue text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <MessageSquare size={16} />
-              </button>
-              </div>
-            )}
-
-            {/* RAG Results Info */}
-            {!showRAGSettings && ragResult && (
-              <div className="mt-2 p-2 bg-gray-50 rounded-lg flex-shrink-0">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-500">Strategy:</span>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
-                      {ragResult.strategy}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-500">
-                    <span>Confidence: {Math.round(ragResult.confidence * 100)}%</span>
-                    <span>Time: {ragResult.processingTime}ms</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-      </div>
+        </div>
+      </GlassSurface>
     </div>
   );
 }

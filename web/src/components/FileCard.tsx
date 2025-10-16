@@ -210,8 +210,8 @@ export function FileCard({ file, viewMode }: FileCardProps) {
     return (
       <>
         <div 
-          className={`flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow cursor-move ${
-            isDragging ? 'opacity-50 scale-95' : ''
+          className={`flex items-center space-x-4 p-5 bg-blue-500/30 backdrop-blur-sm rounded-2xl border border-white/40 hover:border-white/60 hover:shadow-xl transition-all duration-300 ease-out cursor-move ${
+            isDragging ? 'opacity-10 scale-95' : ''
           }`}
           draggable
           onDragStart={handleDragStart}
@@ -219,8 +219,8 @@ export function FileCard({ file, viewMode }: FileCardProps) {
           onDragOver={handleDragOver}
         >
           <div className="flex-shrink-0">
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-lg">{getFileIcon(file.type)}</span>
+            <div className="w-14 h-14 bg-white/40 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/60 group-hover:bg-white/60 transition-all duration-300">
+              <span className="text-2xl">{getFileIcon(file.type)}</span>
             </div>
           </div>
           
@@ -253,14 +253,14 @@ export function FileCard({ file, viewMode }: FileCardProps) {
               ) : (
                 <>
                   <h3 
-                    className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors flex-1"
+                    className="text-sm font-medium text-white truncate cursor-pointer hover:text-blue-300 transition-colors flex-1"
                     onClick={handleNameEdit}
                     title="Click to edit name"
                   >
                     {file.name}
                   </h3>
                   {file.aiSuggested && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex-shrink-0">
+                    <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full flex-shrink-0 border border-blue-400/30">
                       <Sparkles size={10} />
                       <span>AI</span>
                     </span>
@@ -269,21 +269,21 @@ export function FileCard({ file, viewMode }: FileCardProps) {
               )}
             </div>
             
-            <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+            <div className="flex items-center space-x-2 text-xs text-white/70 mt-1">
               <span>{formatFileSize(file.size)}</span>
               <span>•</span>
               <span 
-                className="flex items-center space-x-1 cursor-pointer hover:text-blue-600 transition-colors"
+                className="flex items-center space-x-1 cursor-pointer hover:text-blue-300 transition-colors"
                 onClick={() => setShowFolderPicker(true)}
                 title="Click to change folder"
               >
-                <Folder size={12} />
-                <span>{folders.find(f => f.id === file.folder)?.name || file.folder}</span>
+                <Folder size={12} className="text-white/60" />
+                <span className="text-white/70">{folders.find(f => f.id === file.folder)?.name || file.folder}</span>
               </span>
               <span>•</span>
               <span className="flex items-center space-x-1">
-                <Calendar size={12} />
-                <span>{formatDate(file.addedDate)}</span>
+                <Calendar size={12} className="text-white/60" />
+                <span className="text-white/70">{formatDate(file.addedDate)}</span>
               </span>
             </div>
           </div>
@@ -335,19 +335,19 @@ export function FileCard({ file, viewMode }: FileCardProps) {
               </div>
             ) : (
               <div 
-                className="flex items-center space-x-1 cursor-pointer hover:text-blue-600 transition-colors"
+                className="flex items-center space-x-1 cursor-pointer hover:text-blue-300 transition-colors"
                 onClick={handleTagsEdit}
                 title="Click to edit tags"
               >
-                <Tag size={12} className="text-gray-400" />
-                <span className="text-xs text-gray-500">
+                <Tag size={12} className="text-white/60" />
+                <span className="text-xs text-white/70">
                   {file.tags.length > 0 ? (
                     <>
                       {file.tags.slice(0, 2).join(', ')}
                       {file.tags.length > 2 && ` +${file.tags.length - 2}`}
                     </>
                   ) : (
-                    <span className="text-gray-400 italic">No tags</span>
+                    <span className="text-white/50 italic">No tags</span>
                   )}
                 </span>
               </div>
@@ -356,37 +356,37 @@ export function FileCard({ file, viewMode }: FileCardProps) {
             <div className="relative">
               <button
                 onClick={() => setShowActions(!showActions)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-2 hover:bg-white/40 rounded-lg transition-all duration-200 backdrop-blur-sm"
               >
-                <MoreVertical size={16} className="text-gray-400" />
+                <MoreVertical size={16} className="text-white/70" />
               </button>
               
               {showActions && (
-                <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <div className="absolute right-0 top-10 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 py-2 z-10">
                   <button
                     onClick={handlePreview}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Eye size={14} />
                     <span>Preview</span>
                   </button>
                   <button
                     onClick={handleNameEdit}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Edit3 size={14} />
                     <span>Edit Name</span>
                   </button>
                   <button
                     onClick={handleTagsEdit}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Tag size={14} />
                     <span>Edit Tags</span>
                   </button>
                   <button
                     onClick={() => setShowFolderPicker(true)}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Folder size={14} />
                     <span>Move to Folder</span>
@@ -419,54 +419,54 @@ export function FileCard({ file, viewMode }: FileCardProps) {
   return (
     <>
       <div 
-        className={`bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow group cursor-move ${
-          isDragging ? 'opacity-50 scale-95' : ''
+        className={`group relative bg-blue-500/30 backdrop-blur-sm rounded-2xl border border-white/40 hover:border-white/60 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out cursor-move ${
+          isDragging ? 'opacity-10 scale-95' : ''
         }`}
         draggable
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
       >
-        <div className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div className="w-14 h-14 bg-white/40 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-white/60 group-hover:bg-white/60 transition-all duration-300">
               <span className="text-2xl">{getFileIcon(file.type)}</span>
             </div>
             
             <div className="relative">
               <button
                 onClick={() => setShowActions(!showActions)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+                className="p-2 hover:bg-white/40 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 backdrop-blur-sm"
               >
-                <MoreVertical size={16} className="text-gray-400" />
+                <MoreVertical size={16} className="text-white/70" />
               </button>
               
               {showActions && (
-                <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <div className="absolute right-0 top-10 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 py-2 z-10">
                   <button
                     onClick={handlePreview}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Eye size={14} />
                     <span>Preview</span>
                   </button>
                   <button
                     onClick={handleNameEdit}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Edit3 size={14} />
                     <span>Edit Name</span>
                   </button>
                   <button
                     onClick={handleTagsEdit}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Tag size={14} />
                     <span>Edit Tags</span>
                   </button>
                   <button
                     onClick={() => setShowFolderPicker(true)}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-white/50 flex items-center space-x-2 transition-colors"
                   >
                     <Folder size={14} />
                     <span>Move to Folder</span>
@@ -513,14 +513,14 @@ export function FileCard({ file, viewMode }: FileCardProps) {
               ) : (
                 <>
                   <h3 
-                    className="text-sm font-medium text-gray-900 line-clamp-2 flex-1 cursor-pointer hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-white line-clamp-2 flex-1 cursor-pointer hover:text-blue-300 transition-colors"
                     onClick={handleNameEdit}
                     title="Click to edit name"
                   >
                     {file.name}
                   </h3>
                   {file.aiSuggested && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex-shrink-0">
+                    <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full flex-shrink-0 border border-blue-400/30">
                       <Sparkles size={10} />
                       <span>AI</span>
                     </span>
@@ -530,20 +530,20 @@ export function FileCard({ file, viewMode }: FileCardProps) {
             </div>
           </div>
           
-          <div className="space-y-1 text-xs text-gray-500">
+          <div className="space-y-2 text-xs text-white/70">
             <div className="flex items-center justify-between">
-              <span>{formatFileSize(file.size)}</span>
-              <span>{formatDate(file.addedDate)}</span>
+              <span className="text-white/80">{formatFileSize(file.size)}</span>
+              <span className="text-white/60">{formatDate(file.addedDate)}</span>
             </div>
             
             {/* Folder - Clickable to change */}
             <div 
-              className="flex items-center space-x-1 cursor-pointer hover:text-blue-600 transition-colors"
+              className="flex items-center space-x-1 cursor-pointer hover:text-blue-300 transition-colors"
               onClick={() => setShowFolderPicker(true)}
               title="Click to change folder"
             >
-              <Folder size={12} />
-              <span className="truncate">{folders.find(f => f.id === file.folder)?.name || file.folder}</span>
+              <Folder size={12} className="text-white/60" />
+              <span className="truncate text-white/70">{folders.find(f => f.id === file.folder)?.name || file.folder}</span>
             </div>
             
             {/* Tags - Editable */}
@@ -599,19 +599,19 @@ export function FileCard({ file, viewMode }: FileCardProps) {
               </div>
             ) : (
               <div 
-                className="flex items-center space-x-1 cursor-pointer hover:text-blue-600 transition-colors"
+                className="flex items-center space-x-1 cursor-pointer hover:text-blue-300 transition-colors"
                 onClick={handleTagsEdit}
                 title="Click to edit tags"
               >
-                <Tag size={12} />
-                <span className="truncate">
+                <Tag size={12} className="text-white/60" />
+                <span className="truncate text-white/70">
                   {file.tags.length > 0 ? (
                     <>
                       {file.tags.slice(0, 2).join(', ')}
                       {file.tags.length > 2 && ` +${file.tags.length - 2}`}
                     </>
                   ) : (
-                    <span className="text-gray-400 italic">No tags - click to add</span>
+                    <span className="text-white/50 italic">No tags - click to add</span>
                   )}
                 </span>
               </div>

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DocumentSearchResult } from '../lib/types';
 import { Calendar, Folder, Tag, Eye, ExternalLink, Hash, HardDrive } from 'lucide-react';
 
@@ -9,7 +8,6 @@ interface DocumentResultCardProps {
 }
 
 export function DocumentResultCard({ result, onResultClick }: DocumentResultCardProps) {
-  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDate = (dateString: string) => {
