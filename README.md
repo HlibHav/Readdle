@@ -47,6 +47,11 @@ AI-agentic Web browser that combines advanced machine learning capabilities with
 ### **Onboarding**
 <img width="1510" height="802" alt="image" src="https://github.com/user-attachments/assets/bb843843-e6f1-4c32-ae19-fed9d3f74692" />
 
+### **Integration with Documents**
+
+<img width="1512" height="982" alt="image" src="https://github.com/user-attachments/assets/f9898e0a-30f0-48d3-9330-a43e91311473" />
+
+
 ### **AI-Powered Features in Action**
 <img width="1510" height="812" alt="image" src="https://github.com/user-attachments/assets/5bd0ac10-867a-4776-8384-2474944acf3c" />
 
