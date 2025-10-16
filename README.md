@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![React](https://img.shields.io/badge/react-18.3.1-blue.svg)
@@ -163,6 +163,40 @@ AI-agentic Web browser that combines advanced machine learning capabilities with
 - ✅ **Memory Management**: Proper cleanup of blob URLs and temporary data
 - ✅ **Responsive Design**: Mobile-first approach with adaptive layouts
 
+#### **UI/UX Enhancements**
+- ✅ **Fixed Navigation**: Always-visible header with enhanced backdrop-filter for better contrast
+- ✅ **Smart Layout**: Web content properly positioned with assistant panel integration
+- ✅ **Toast Notifications**: Portal-based toast system for PDF conversion feedback
+- ✅ **Glass Morphism**: Advanced glass effects with improved visibility on any background
+- ✅ **Smooth Animations**: Optimized transitions for assistant panel and content layout
+
+---
+
+## 🎨 Latest UI/UX Improvements
+
+### **Enhanced Navigation & Layout**
+- **Fixed Header Navigation**: Always-visible navigation bar with enhanced backdrop-filter (20px blur + dark overlay)
+- **Improved Contrast**: Enhanced visibility on any background color with stronger blur effects and shadows
+- **Smart Content Layout**: Web content properly positioned with 1rem margin from assistant panel
+- **Responsive Assistant Panel**: Fixed positioning with smooth slide animations
+
+### **Advanced Toast System**
+- **Portal-Based Notifications**: PDF conversion toasts render outside component hierarchy for proper z-index
+- **Bottom-Right Positioning**: Toast notifications appear in bottom-right corner for better UX
+- **Enhanced Visibility**: High z-index (60) ensures toasts are always visible above other elements
+
+### **Glass Morphism Enhancements**
+- **Multi-Layer Backdrop**: Enhanced backdrop-filter with 20-25px blur and 1.8 saturation
+- **Improved Shadows**: Advanced box-shadow effects for better depth perception
+- **Better Contrast**: Dark overlay (rgba(0,0,0,0.4)) ensures text visibility on any background
+- **Clean Borders**: Removed unnecessary borders for cleaner, modern appearance
+
+### **Layout Optimizations**
+- **Content Width Management**: Dynamic width calculation (calc(100% - 22rem)) when assistant is open
+- **Smooth Transitions**: Animated width and margin changes for seamless user experience
+- **Proper Z-Indexing**: Layered z-index system (navigation: 50, assistant: 40, toasts: 60)
+- **Fixed Positioning**: Assistant panel uses fixed positioning for consistent placement
+
 ---
 
 ## 🚀 Core Features & Capabilities
@@ -236,13 +270,16 @@ AI-agentic Web browser that combines advanced machine learning capabilities with
 │   │   ├── SmartFileCard (AI Suggestions)
 │   │   └── ContentAnalyzer (Real-time Analysis)
 │   ├── Core UI Components
+│   │   ├── Layout (Fixed Navigation + Glass Morphism)
+│   │   ├── PdfDownloadButton (Portal-based Toasts)
 │   │   ├── DragDropUploader
 │   │   ├── InlineEditor
 │   │   └── ContextMenu
 │   └── User Interface
 │       ├── Drag & Drop
 │       ├── Inline Editing
-│       └── Context Menus
+│       ├── Context Menus
+│       └── Glass Morphism Effects
 ├── State Management (Zustand)
 │   ├── File Store (Optimistic Updates)
 │   ├── AI Store (Model State)
@@ -251,6 +288,30 @@ AI-agentic Web browser that combines advanced machine learning capabilities with
     ├── AI Service (LangChain Integration)
     ├── File Service (Local Storage)
     └── UI Service (Interface Management)
+```
+
+### **UI/UX Technical Implementation**
+
+```typescript
+// Enhanced Layout System
+├── Fixed Navigation
+│   ├── backdrop-filter: blur(20px) saturate(1.8)
+│   ├── background: rgba(0, 0, 0, 0.4)
+│   ├── box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3)
+│   └── z-index: 50
+├── Assistant Panel
+│   ├── position: fixed
+│   ├── top: 6rem, right: 1rem
+│   ├── height: calc(100vh - 7rem)
+│   └── z-index: 40
+├── Toast Notifications
+│   ├── React Portal to document.body
+│   ├── position: fixed, bottom: 1rem, right: 1rem
+│   └── z-index: 60
+└── Content Layout
+    ├── width: calc(100% - 22rem) when assistant open
+    ├── margin-right: 1rem when assistant open
+    └── smooth transitions for all changes
 ```
 
 ### **Backend Microservices**
