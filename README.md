@@ -53,16 +53,14 @@ AI-agentic Web browser that combines advanced machine learning capabilities with
 
 
 ### **AI-Powered Features in Action**
-<img width="1510" height="812" alt="image" src="https://github.com/user-attachments/assets/5bd0ac10-867a-4776-8384-2474944acf3c" />
+<img width="1512" height="812" alt="image" src="https://github.com/user-attachments/assets/6c5739ca-996f-4ec6-b14b-73e1b54ff310" />
 
-<img width="1508" height="812" alt="image" src="https://github.com/user-attachments/assets/7ae2f907-34a4-45f4-9b1d-013c506e1f77" />
-
-<img width="1511" height="811" alt="image" src="https://github.com/user-attachments/assets/cda20f94-d99b-4180-8bea-cba99bef6040" />
 
 
 
 ### **Smart File Management**
-<img width="1512" height="807" alt="image" src="https://github.com/user-attachments/assets/4c96bbdc-a88a-408f-9853-4e6244c7f2ad" />
+<img width="1512" height="814" alt="image" src="https://github.com/user-attachments/assets/ff7acd71-e37d-44ef-b1b1-2a984cc373e9" />
+
 
 
 ---
