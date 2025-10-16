@@ -16,7 +16,7 @@ export function Uploader({ onClose }: UploaderProps) {
   const [, setProcessedFiles] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { addFile, cloudAI } = useAppStore();
+  const { addFile } = useAppStore();
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;

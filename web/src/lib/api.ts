@@ -1,4 +1,4 @@
-import { ExtractedContent, SummaryResponse, QAResponse } from './types';
+import { ExtractedContent, SummaryResponse, QAResponse, SearchRequest, SearchResponse, DocumentSearchResult, WebSearchResult } from './types';
 
 const API_BASE = '/api';
 
@@ -186,7 +186,16 @@ export async function createTodos(text: string, cloudAI: boolean): Promise<{
   return response.json();
 }
 
-export async function generatePdf(url: string, title?: string, content?: string, cloudAI: boolean = true): Promise<{
+export interface GeneratePdfPayload {
+  url?: string;
+  html?: string;
+  title?: string;
+  downloadName?: string;
+  cloudAI?: boolean;
+  emulateMedia?: 'screen' | 'print';
+}
+
+export interface GeneratePdfResponse {
   success: boolean;
   fileId?: string;
   suggestedName?: string;
@@ -194,14 +203,19 @@ export async function generatePdf(url: string, title?: string, content?: string,
   summary?: string;
   tags?: string[];
   pdfData?: string;
+  size?: number;
+  title?: string | null;
+  sourceUrl?: string | null;
   error?: string;
-}> {
+}
+
+export async function generatePdf(payload: GeneratePdfPayload): Promise<GeneratePdfResponse> {
   const response = await fetch(`${API_BASE}/generate-pdf`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ url, title, content, cloudAI }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -266,6 +280,150 @@ export async function generateWithOpenELM(modelId: string, prompt: string, optio
 
   if (!response.ok) {
     throw new Error(`Failed to generate with OpenELM: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+// Search API functions
+export async function unifiedSearch(request: SearchRequest): Promise<SearchResponse> {
+  const response = await fetch(`${API_BASE}/search`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function searchDocuments(query: string, filters?: SearchRequest['filters'], limit?: number): Promise<{
+  success: boolean;
+  documents: DocumentSearchResult[];
+  totalDocuments: number;
+  query: string;
+}> {
+  const response = await fetch(`${API_BASE}/search/documents`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, filters, limit }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search documents: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function searchWeb(query: string, limit?: number): Promise<{
+  success: boolean;
+  web: WebSearchResult[];
+  totalWeb: number;
+  query: string;
+}> {
+  const response = await fetch(`${API_BASE}/search/web`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, limit }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search web: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function getSearchStats(): Promise<{
+  success: boolean;
+  stats: any;
+}> {
+  const response = await fetch(`${API_BASE}/search/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to get search stats: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function indexDocument(file: any): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await fetch(`${API_BASE}/search/index`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ file }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to index document: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function removeDocumentFromIndex(documentId: string): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await fetch(`${API_BASE}/search/index/${documentId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to remove document from index: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function getDocumentFilters(): Promise<{
+  success: boolean;
+  filters: {
+    documentTypes: Array<{ value: string; count: number }>;
+    folders: Array<{ value: string; count: number }>;
+    fileExtensions: Array<{ value: string; count: number }>;
+    contentTypes: {
+      images: number;
+      documents: number;
+    };
+  };
+}> {
+  const response = await fetch(`${API_BASE}/search/filters`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to get document filters: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function indexLibraryFiles(files: any[]): Promise<{
+  success: boolean;
+  message: string;
+  results: Array<{ id: string; name: string; success: boolean; error?: string }>;
+  stats: {
+    total: number;
+    successful: number;
+    failed: number;
+  };
+}> {
+  const response = await fetch(`${API_BASE}/search/index-library`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ files }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to index library files: ${response.statusText}`);
   }
   return response.json();
 }

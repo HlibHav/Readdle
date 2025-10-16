@@ -174,3 +174,6 @@ If you encounter issues:
 ---
 
 **Status**: ✅ Working - Phoenix AI observability is now running in Docker with your Node.js application!
+
+
+

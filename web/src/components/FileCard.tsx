@@ -170,7 +170,7 @@ export function FileCard({ file, viewMode }: FileCardProps) {
     }
   };
 
-  const handleMoveToFolder = (folderId: string, folderName: string) => {
+  const handleMoveToFolder = (folderId: string, _folderName: string) => {
     updateFile(file.id, { folder: folderId });
     setShowActions(false);
   };

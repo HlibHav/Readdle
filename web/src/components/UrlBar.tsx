@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, ArrowLeft } from 'lucide-react';
 import { PdfDownloadButton } from './PdfDownloadButton';
+import { isUrl, normalizeUrl } from '../lib/urlUtils';
 
 interface UrlBarProps {
   url: string;
   setUrl: (url: string) => void;
   onGo: () => void;
+  onSearch: (query: string) => void;
   isLoading: boolean;
   showAssistant: boolean;
   onAssistantToggle: () => void;
@@ -16,25 +18,45 @@ interface UrlBarProps {
     title?: string;
     content?: string;
   };
+  hasSelectedResult?: boolean;
+  onBackToResults?: () => void;
 }
 
 export function UrlBar({ 
   url, 
   setUrl, 
   onGo, 
+  onSearch,
   isLoading, 
   showAssistant, 
   onAssistantToggle, 
   incognito, 
   hasCurrentPage,
-  currentPage
+  currentPage,
+  hasSelectedResult,
+  onBackToResults
 }: UrlBarProps) {
   const [isFocused, setIsFocused] = useState(false);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {
-      onGo();
+      if (isUrl(url)) {
+        // It's a URL, navigate to browser with normalized URL
+        const normalizedUrl = normalizeUrl(url);
+        setUrl(normalizedUrl);
+        onGo();
+      } else if (url.trim()) {
+        // It's a search query, use inline search
+        onSearch(url.trim());
+      }
     }
+  };
+
+  const getPlaceholder = () => {
+    if (isUrl(url)) {
+      return "Press Enter to browse this URL";
+    }
+    return "Enter URL to browse or search query...";
   };
 
   return (
@@ -45,7 +67,18 @@ export function UrlBar({
             ? 'border-documents-blue shadow-sm' 
             : 'border-gray-300 hover:border-gray-400'
         }`}>
-          <div className="pl-3 pr-2 text-gray-400">
+          {/* Back Arrow - only show when there's a selected result */}
+          {hasSelectedResult && onBackToResults && (
+            <button
+              onClick={onBackToResults}
+              className="pl-3 pr-2 text-gray-500 hover:text-gray-700 transition-colors"
+              title="Back to search results"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          
+          <div className={`${hasSelectedResult ? 'pl-2' : 'pl-3'} pr-2 text-gray-400`}>
             <Search size={20} />
           </div>
           <input
@@ -55,7 +88,7 @@ export function UrlBar({
             onKeyPress={handleKeyPress}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="Enter URL to browse..."
+            placeholder={getPlaceholder()}
             className="flex-1 py-3 px-2 border-0 outline-none text-gray-900 placeholder-gray-500"
             disabled={isLoading}
           />
@@ -63,18 +96,28 @@ export function UrlBar({
       </div>
       
       <button
-        onClick={onGo}
+        onClick={() => {
+          if (isUrl(url)) {
+            const normalizedUrl = normalizeUrl(url);
+            setUrl(normalizedUrl);
+            onGo();
+          } else if (url.trim()) {
+            onSearch(url.trim());
+          }
+        }}
         disabled={isLoading || !url.trim()}
         className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
           isLoading || !url.trim()
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-documents-blue text-white hover:bg-blue-600'
+            : isUrl(url)
+            ? 'bg-documents-blue text-white hover:bg-blue-600'
+            : 'bg-green-500 text-white hover:bg-green-600'
         }`}
       >
         {isLoading ? (
           <Loader2 size={20} className="animate-spin" />
         ) : (
-          <span>Go</span>
+          <span>{isUrl(url) ? 'Go' : 'Search'}</span>
         )}
       </button>
 

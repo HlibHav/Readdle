@@ -7,6 +7,7 @@ import { summarizeContent } from './routes/summarize.js';
 import { answerQuestion } from './routes/qa.js';
 import { suggestFilename } from './routes/suggestFilename.js';
 import { generatePdf } from './routes/generatePdf.js';
+import { proxyContent } from './routes/proxy.js';
 import { getRAGStrategies, getRAGStrategy, processWithRAG, detectDevice } from './routes/rag.js';
 import { 
   processWithAgentRAG, 
@@ -19,6 +20,18 @@ import {
 import { translateContent } from './routes/translate.js';
 import { analyzeForInsights } from './routes/analyze.js';
 import { createTodos } from './routes/todos.js';
+import { 
+  unifiedSearch, 
+  searchDocuments, 
+  searchWeb, 
+  getSearchStats, 
+  indexDocument, 
+  removeDocument, 
+  bulkIndexDocuments,
+  indexAllDocuments,
+  indexLibraryFiles,
+  getDocumentFilters
+} from './routes/search.js';
 import sharedMemoryRouter from './routes/sharedMemory.js';
 import phoenixRouter from './routes/phoenix.js';
 import openelmRouter from './routes/openelm.js';
@@ -35,30 +48,43 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' })); // Increase limit for large PDF data
 
 // Routes
-app.post('/extract', extractPageContent);
-app.post('/summarize', summarizeContent);
-app.post('/qa', answerQuestion);
-app.post('/suggest-filename', suggestFilename);
-app.post('/generate-pdf', generatePdf);
+app.post('/api/extract', extractPageContent);
+app.post('/api/summarize', summarizeContent);
+app.post('/api/qa', answerQuestion);
+app.post('/api/suggest-filename', suggestFilename);
+app.post('/api/generate-pdf', generatePdf);
+app.get('/api/proxy', proxyContent);
 
 // RAG Routes
-app.get('/rag/strategies', getRAGStrategies);
-app.get('/rag/strategies/:strategyName', getRAGStrategy);
-app.post('/rag/process', processWithRAG);
-app.post('/rag/detect-device', detectDevice);
+app.get('/api/rag/strategies', getRAGStrategies);
+app.get('/api/rag/strategies/:strategyName', getRAGStrategy);
+app.post('/api/rag/process', processWithRAG);
+app.post('/api/rag/detect-device', detectDevice);
 
 // Agent RAG Routes
-app.post('/agent-rag/process', processWithAgentRAG);
-app.get('/agent-rag/strategies', getAgentStrategies);
-app.post('/agent-rag/analyze-content', analyzeContentStructure);
+app.post('/api/agent-rag/process', processWithAgentRAG);
+app.get('/api/agent-rag/strategies', getAgentStrategies);
+app.post('/api/agent-rag/analyze-content', analyzeContentStructure);
 
 // New Action Routes
-app.post('/translate', translateContent);
-app.post('/analyze', analyzeForInsights);
-app.post('/todos', createTodos);
-app.post('/agent-rag/select-strategy', selectOptimalStrategy);
-app.get('/agent-rag/workflow/:workflowId', getAgentWorkflowStatus);
-app.get('/agent-rag/metrics', getAgentMetrics);
+app.post('/api/translate', translateContent);
+app.post('/api/analyze', analyzeForInsights);
+app.post('/api/todos', createTodos);
+app.post('/api/agent-rag/select-strategy', selectOptimalStrategy);
+app.get('/api/agent-rag/workflow/:workflowId', getAgentWorkflowStatus);
+app.get('/api/agent-rag/metrics', getAgentMetrics);
+
+// Search Routes
+app.post('/api/search', unifiedSearch);
+app.post('/api/search/documents', searchDocuments);
+app.post('/api/search/web', searchWeb);
+app.get('/api/search/stats', getSearchStats);
+app.get('/api/search/filters', getDocumentFilters);
+app.post('/api/search/index', indexDocument);
+app.delete('/api/search/index/:documentId', removeDocument);
+app.post('/api/search/bulk-index', bulkIndexDocuments);
+app.post('/api/search/index-all', indexAllDocuments);
+app.post('/api/search/index-library', indexLibraryFiles);
 
 // Shared Memory Routes
 app.use('/shared-memory', sharedMemoryRouter);

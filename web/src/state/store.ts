@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { seedDemoFiles } from '../lib/seedData';
+import { DocumentSearchResult, WebSearchResult, SearchState } from '../lib/types';
+import { indexDocument, indexLibraryFiles } from '../lib/api';
 
 export interface FileItem {
   id: string;
@@ -13,6 +15,7 @@ export interface FileItem {
   addedDate: Date;
   url?: string;
   content?: string;
+  blob?: Blob; // For PDF preview
   // AI-related fields
   aiSuggested?: boolean;
   aiRenameAccepted?: boolean;
@@ -35,9 +38,10 @@ export interface PageContent {
   domain: string;
   favicon?: string;
   url: string;
+  images?: Array<{src: string; alt: string; width: number; height: number}>;
 }
 
-interface AppState {
+interface AppState extends SearchState {
   // Settings
   cloudAI: boolean;
   incognito: boolean;
@@ -51,6 +55,8 @@ interface AppState {
   // Current page
   currentPage: PageContent | null;
   isLoading: boolean;
+  
+  // Search result content display
   
   // RAG Strategy
   selectedRAGStrategy: string | null;
@@ -81,6 +87,16 @@ interface AppState {
   addFolder: (folder: Folder) => void;
   updateFolder: (id: string, updates: Partial<Folder>) => void;
   deleteFolder: (id: string) => void;
+  
+  // Search actions
+  setSearchQuery: (query: string) => void;
+  setSearchMode: (mode: 'url' | 'search') => void;
+  setDocumentResults: (results: DocumentSearchResult[]) => void;
+  setWebResults: (results: WebSearchResult[]) => void;
+  setIsSearching: (searching: boolean) => void;
+  addToSearchHistory: (query: string) => void;
+  clearSearchResults: () => void;
+  indexAllLibraryFiles: () => Promise<any>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -106,6 +122,15 @@ export const useAppStore = create<AppState>()(
         { id: 'images', name: 'Images', color: '#FF9500' },
         { id: 'summaries', name: 'Summaries', color: '#9C27B0' },
       ],
+      
+      // Search state
+      searchQuery: '',
+      searchMode: 'url',
+      documentResults: [],
+      webResults: [],
+      isSearching: false,
+      searchHistory: [],
+      lastSearchTime: 0,
 
       // Actions
       setCloudAI: (enabled) => set({ cloudAI: enabled }),
@@ -141,6 +166,11 @@ export const useAppStore = create<AppState>()(
           size: file.size
         });
         
+        // Index document for search
+        indexDocument(file).catch(error => {
+          console.error('Failed to index document:', error);
+        });
+        
         return { 
           files: [...state.files, file] 
         };
@@ -152,9 +182,18 @@ export const useAppStore = create<AppState>()(
         )
       })),
       
-      deleteFile: (id) => set((state) => ({
-        files: state.files.filter(file => file.id !== id)
-      })),
+      deleteFile: (id) => set((state) => {
+        // Remove from search index
+        import('../lib/api').then(({ removeDocumentFromIndex }) => {
+          removeDocumentFromIndex(id).catch(error => {
+            console.error('Failed to remove document from search index:', error);
+          });
+        });
+        
+        return {
+          files: state.files.filter(file => file.id !== id)
+        };
+      }),
       
       addFolder: (folder) => set((state) => ({
         folders: [...state.folders, folder]
@@ -169,6 +208,35 @@ export const useAppStore = create<AppState>()(
       deleteFolder: (id) => set((state) => ({
         folders: state.folders.filter(folder => folder.id !== id)
       })),
+      
+      // Search actions
+      setSearchQuery: (query) => set({ searchQuery: query }),
+      setSearchMode: (mode) => set({ searchMode: mode }),
+      setDocumentResults: (results) => set({ documentResults: results }),
+      setWebResults: (results) => set({ webResults: results }),
+      setIsSearching: (searching) => set({ isSearching: searching }),
+      addToSearchHistory: (query) => set((state) => ({
+        searchHistory: [query, ...state.searchHistory.filter(h => h !== query)].slice(0, 10)
+      })),
+          clearSearchResults: () => set({
+            documentResults: [],
+            webResults: [],
+            isSearching: false
+          }),
+
+          // Index all library files for search
+          indexAllLibraryFiles: async () => {
+            const state = useAppStore.getState();
+            try {
+              console.log('📚 Indexing all library files for search...');
+              const result = await indexLibraryFiles(state.files);
+              console.log('✅ Library indexing result:', result);
+              return result;
+            } catch (error) {
+              console.error('❌ Failed to index library files:', error);
+              throw error;
+            }
+          },
     }),
     {
       name: 'documents-browser-storage',
@@ -184,6 +252,10 @@ export const useAppStore = create<AppState>()(
           content: undefined // Remove PDF content from persisted data
         })),
         folders: state.folders,
+        // Persist search state
+        searchQuery: state.searchQuery,
+        searchMode: state.searchMode,
+        searchHistory: state.searchHistory,
       }),
     }
   )

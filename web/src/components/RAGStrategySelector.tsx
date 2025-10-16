@@ -62,10 +62,10 @@ export function RAGStrategySelector() {
       
       setStrategies(strategiesData.strategies);
       setDeviceInfo(deviceData.deviceInfo);
-      setOpenelmAvailable(openelmStatus.success && openelmStatus.data.service.ready);
+      setOpenelmAvailable(openelmStatus.success && 'data' in openelmStatus && openelmStatus.data?.service?.ready);
       
       // Load OpenELM strategies if available
-      if (openelmStatus.success && openelmStatus.data.service.ready) {
+      if (openelmStatus.success && 'data' in openelmStatus && openelmStatus.data?.service?.ready) {
         try {
           const openelmStrategiesData = await getOpenELMStrategies();
           setOpenelmStrategies(openelmStrategiesData.data.strategies);

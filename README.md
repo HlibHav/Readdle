@@ -189,6 +189,13 @@ The **Documents Browser Demo** represents a cutting-edge AI-powered document man
 - **Source Citations**: Automatic source citations with relevant snippets
 - **Response Enhancement**: Structured responses with confidence indicators
 
+#### **🔍 Unified Search System**
+- **Document + Web Search**: Combined search across local documents and web results
+- **Typesense Integration**: Fast, typo-tolerant search with vector capabilities
+- **Real-time Indexing**: Automatic document indexing when files are added
+- **Smart Result Ranking**: AI-powered relevance scoring and result ordering
+- **Privacy Controls**: Incognito mode disables web search for privacy protection
+
 #### **Intelligent Content Analysis**
 - **Context-Aware Processing**: Enhanced prompts with strategy-specific enhancements
 - **Multi-Modal Analysis**: Text, metadata, and structural content processing
@@ -347,6 +354,20 @@ export HUGGINGFACE_API_KEY=your_huggingface_api_key
 # Available models: openelm-270m, openelm-450m, openelm-1b, openelm-3b (with -instruct variants)
 ```
 
+### **🔍 Search Configuration**
+```bash
+# Typesense search engine configuration
+export TYPESENSE_HOST=localhost
+export TYPESENSE_PORT=8108
+export TYPESENSE_PROTOCOL=http
+export TYPESENSE_API_KEY=xyz
+export TYPESENSE_COLLECTION_NAME=documents
+
+# Start Typesense with Docker
+cd server
+docker-compose up -d typesense
+```
+
 ---
 
 ## 🎬 Live Demo Walkthrough
@@ -382,6 +403,16 @@ export HUGGINGFACE_API_KEY=your_huggingface_api_key
 4. Drag file to different folder in sidebar
 5. Test inline editing of tags and filenames
 6. Try drag and drop organization
+```
+
+### **Phase 4: Unified Search (20 seconds)**
+```bash
+1. In URL bar, type "quantum computing" (not a URL)
+2. Press Enter → Navigate to search results page
+3. See documents first, then web results
+4. Click on document result → Opens in Library
+5. Click on web result → Opens in new tab
+6. Try searching for existing document names
 ```
 
 ### **🎯 Advanced Demo Scenarios**
@@ -579,6 +610,106 @@ Response: {
   "success": true,
   "tracesGenerated": 4,
   "workflowId": "test-workflow-123"
+}
+```
+
+### **🔍 Search Endpoints**
+
+#### **Unified Search**
+```typescript
+POST /api/search
+// Search both documents and web
+{
+  "query": "quantum computing",
+  "filters": {
+    "documentTypes": ["pdf", "summary"],
+    "folders": ["documents", "research"]
+  },
+  "limit": 10,
+  "includeWeb": true
+}
+Response: {
+  "success": true,
+  "documents": [...],
+  "web": [...],
+  "totalDocuments": 5,
+  "totalWeb": 15,
+  "processingTime": 123,
+  "query": "quantum computing"
+}
+```
+
+#### **Document Search**
+```typescript
+POST /api/search/documents
+// Search only local documents
+{
+  "query": "research paper",
+  "filters": {
+    "documentTypes": ["pdf"],
+    "dateRange": {
+      "from": "2024-01-01T00:00:00Z",
+      "to": "2024-12-31T23:59:59Z"
+    }
+  },
+  "limit": 20
+}
+Response: {
+  "success": true,
+  "documents": [...],
+  "totalDocuments": 8,
+  "query": "research paper"
+}
+```
+
+#### **Web Search**
+```typescript
+POST /api/search/web
+// Search only web results
+{
+  "query": "latest AI research",
+  "limit": 10
+}
+Response: {
+  "success": true,
+  "web": [...],
+  "totalWeb": 10,
+  "query": "latest AI research"
+}
+```
+
+#### **Search Management**
+```typescript
+GET /api/search/stats
+// Get search index statistics
+Response: {
+  "success": true,
+  "stats": {
+    "name": "documents",
+    "documentCount": 156,
+    "fields": 9,
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+
+POST /api/search/index
+// Index a single document
+{
+  "file": {
+    "id": "doc-123",
+    "name": "Research Paper.pdf",
+    "type": "pdf",
+    "content": "Document content...",
+    "folder": "documents",
+    "tags": ["research", "ai"]
+  }
+}
+
+DELETE /api/search/index/:documentId
+// Remove document from search index
+Response: {
+  "success": true,
+  "message": "Document doc-123 removed from search index"
 }
 ```
 

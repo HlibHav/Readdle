@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, Loader2, Sparkles } from 'lucide-react';
-import { generatePdf } from '../lib/api';
 import { useAppStore } from '../state/store';
 import { FileItem } from '../state/store';
 import { FolderPicker } from './FolderPicker';
+import jsPDF from 'jspdf';
+import { generatePdf, GeneratePdfResponse } from '../lib/api';
 
 interface PdfDownloadButtonProps {
   url: string;
@@ -11,10 +12,392 @@ interface PdfDownloadButtonProps {
   content?: string;
 }
 
+interface DownloadResultState {
+  file?: FileItem;
+  showActions?: boolean;
+  originalSuggestedName?: string;
+  originalTags?: string[];
+  previewUrl?: string;
+  pdfBase64?: string;
+  error?: string;
+  showConfirmation?: boolean;
+  confirmationMessage?: string;
+  confirmationFolderId?: string;
+  confirmationFolderName?: string;
+}
+
+interface ParsedImage {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+interface ParsedHtmlContent {
+  headings: string[];
+  paragraphs: string[];
+  images: ParsedImage[];
+  fallbackText: string;
+}
+
+const MAX_LOCAL_IMAGES = 4;
+
+function base64ToBlob(base64: string, mimeType = 'application/pdf'): Blob {
+  try {
+    // Clean the base64 string - remove any whitespace or invalid characters
+    const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, '');
+    
+    // Validate base64 format
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleanBase64)) {
+      throw new Error('Invalid base64 format');
+    }
+    
+    const byteCharacters = atob(cleanBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+  } catch (error) {
+    console.error('Error converting base64 to blob:', error);
+    console.error('Base64 string length:', base64.length);
+    console.error('Base64 preview:', base64.substring(0, 100) + '...');
+    throw new Error(`Failed to convert base64 to blob: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+function triggerFileDownload(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+}
+
+function sanitizeDownloadName(name: string, fallback = 'document.pdf'): string {
+  if (!name) return fallback;
+  const normalized = name.replace(/\.pdf$/i, '');
+  const cleaned = normalized
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) {
+    return fallback;
+  }
+
+  const truncated = cleaned.length > 96 ? cleaned.slice(0, 96) : cleaned;
+  return `${truncated}.pdf`;
+}
+
+function storePdfInSession(fileId: string, base64: string) {
+  try {
+    sessionStorage.setItem(`pdf_${fileId}`, base64);
+  } catch (error) {
+    console.warn('Unable to persist PDF in sessionStorage:', error);
+  }
+}
+
+function readPdfFromSession(fileId: string): string | null {
+  try {
+    return sessionStorage.getItem(`pdf_${fileId}`);
+  } catch (error) {
+    console.warn('Unable to read PDF from sessionStorage:', error);
+  }
+
+  return null;
+}
+
+function parseHtmlContent(html?: string): ParsedHtmlContent {
+  const emptyResult: ParsedHtmlContent = {
+    headings: [],
+    paragraphs: [],
+    images: [],
+    fallbackText: 'PDF generated from browser content. No additional text was available.'
+  };
+
+  if (!html) {
+    return emptyResult;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const parsedDocument = parser.parseFromString(html, 'text/html');
+    const fallbackText =
+      parsedDocument.body?.textContent?.replace(/\s+/g, ' ').trim() ||
+      emptyResult.fallbackText;
+
+    const headings = Array.from(parsedDocument.querySelectorAll('h1, h2, h3'))
+      .map((el) => el.textContent?.trim())
+      .filter((text): text is string => Boolean(text));
+
+    const uniqueHeadings = Array.from(new Set(headings)).slice(0, 6);
+
+    const paragraphs = Array.from(parsedDocument.querySelectorAll('p, li'))
+      .map((el) => el.textContent?.trim())
+      .filter((text): text is string => Boolean(text));
+
+    const uniqueParagraphs = Array.from(new Set(paragraphs)).slice(0, 40);
+
+    const images = Array.from(parsedDocument.querySelectorAll('img'))
+      .map((img): ParsedImage | null => {
+        const src = img.getAttribute('src') || '';
+        if (!src || src.startsWith('data:image/svg')) {
+          return null;
+        }
+
+        const widthAttr = parseInt(img.getAttribute('width') || '', 10);
+        const heightAttr = parseInt(img.getAttribute('height') || '', 10);
+        const width = Number.isFinite(widthAttr) && widthAttr > 0 ? widthAttr : 1024;
+        const height = Number.isFinite(heightAttr) && heightAttr > 0 ? heightAttr : 768;
+        const alt = (img.getAttribute('alt') || '').trim();
+
+        return {
+          src,
+          alt,
+          width,
+          height
+        };
+      })
+      .filter((img): img is ParsedImage => Boolean(img));
+
+    return {
+      headings: uniqueHeadings,
+      paragraphs: uniqueParagraphs,
+      images,
+      fallbackText
+    };
+  } catch (error) {
+    console.warn('Failed to parse HTML content for local PDF fallback:', error);
+    return emptyResult;
+  }
+}
+
+function buildTextSegments(parsed: ParsedHtmlContent): string[] {
+  const segments: string[] = [];
+
+  if (parsed.headings.length > 0) {
+    segments.push('Highlights:');
+    segments.push(...parsed.headings);
+  }
+
+  if (parsed.paragraphs.length > 0) {
+    if (segments.length > 0) {
+      segments.push('');
+    }
+    segments.push('Content:');
+    segments.push(...parsed.paragraphs);
+  }
+
+  if (segments.length === 0) {
+    segments.push(parsed.fallbackText);
+  }
+
+  return segments;
+}
+
+async function appendImagesToDocument(
+  doc: jsPDF,
+  images: ParsedImage[],
+  cursorY: number,
+  margin: number,
+  usableWidth: number
+): Promise<number> {
+  if (!images.length) {
+    return cursorY;
+  }
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxHeight = 110;
+
+  for (const image of images.slice(0, MAX_LOCAL_IMAGES)) {
+    const dataUrl = await fetchImageAsDataUrl(image.src);
+    if (!dataUrl) {
+      continue;
+    }
+
+    const aspectRatio = image.width / Math.max(image.height, 1);
+    let drawWidth = Math.min(usableWidth, image.width);
+    let drawHeight = drawWidth / aspectRatio;
+
+    if (drawHeight > maxHeight) {
+      drawHeight = maxHeight;
+      drawWidth = drawHeight * aspectRatio;
+    }
+
+    if (drawWidth <= 0 || drawHeight <= 0 || !Number.isFinite(drawWidth) || !Number.isFinite(drawHeight)) {
+      continue;
+    }
+
+    if (cursorY + drawHeight > pageHeight - margin) {
+      doc.addPage();
+      cursorY = margin;
+    }
+
+    const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+
+    try {
+      doc.addImage(dataUrl, format as 'PNG' | 'JPEG', margin, cursorY, drawWidth, drawHeight);
+    } catch (addImageError) {
+      console.warn('Failed to embed image into local PDF:', addImageError);
+      continue;
+    }
+
+    cursorY += drawHeight + 4;
+
+    if (image.alt) {
+      if (cursorY > pageHeight - margin) {
+        doc.addPage();
+        cursorY = margin;
+      }
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(90, 90, 90);
+      doc.text(image.alt, margin, cursorY);
+      cursorY += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+    }
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
+
+  return cursorY;
+}
+
+async function fetchImageAsDataUrl(src: string): Promise<string | null> {
+  if (!src) {
+    return null;
+  }
+
+  // Return data URLs directly
+  if (src.startsWith('data:')) {
+    return src;
+  }
+
+  try {
+    const response = await fetch(src, {
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read image data'));
+      reader.readAsDataURL(blob);
+    });
+
+    return dataUrl;
+  } catch (error) {
+    console.warn('Failed to fetch image for local PDF fallback:', src, error);
+    return null;
+  }
+}
+
+async function generatePdfLocally(params: {
+  url: string;
+  title?: string;
+  content?: string;
+}): Promise<GeneratePdfResponse> {
+  const parsed = parseHtmlContent(params.content);
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const margin = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const usableWidth = pageWidth - margin * 2;
+  let cursorY = margin;
+
+  const heading = params.title || 'Document';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(heading, margin, cursorY);
+  cursorY += 10;
+
+  if (params.url) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Source: ${params.url}`, margin, cursorY);
+    cursorY += 8;
+  }
+
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.line(margin, cursorY, pageWidth - margin, cursorY);
+  cursorY += 8;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+
+  const textSegments = buildTextSegments(parsed);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+
+  textSegments.forEach((segment, index) => {
+    const lineBlock = doc.splitTextToSize(segment || ' ', usableWidth);
+    lineBlock.forEach((line: string) => {
+      if (cursorY > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        cursorY = margin;
+      }
+      doc.text(line, margin, cursorY);
+      cursorY += 6;
+    });
+    if (index !== textSegments.length - 1) {
+      cursorY += 2;
+    }
+  });
+
+  cursorY += 4;
+  cursorY = await appendImagesToDocument(doc, parsed.images, cursorY, margin, usableWidth);
+
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page += 1) {
+    doc.setPage(page);
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(
+      `Generated locally | Page ${page} of ${totalPages}`,
+      margin,
+      doc.internal.pageSize.getHeight() - 10
+    );
+  }
+
+  const dataUri = doc.output('datauristring');
+  const pdfBase64 = dataUri.split(',')[1] ?? '';
+
+  const suggestedName = sanitizeDownloadName(`${heading}.pdf`);
+  const summaryText =
+    textSegments.filter(Boolean).join(' ').trim().slice(0, 400) ||
+    parsed.fallbackText.slice(0, 400);
+
+  return {
+    success: true,
+    pdfData: pdfBase64,
+    fileId: `pdf_${Date.now()}`,
+    suggestedName,
+    originalName: suggestedName,
+    tags: ['document'],
+    summary: summaryText
+  };
+}
+
 export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [downloadResult, setDownloadResult] = useState<any>(null);
+  const [downloadResult, setDownloadResult] = useState<DownloadResultState | null>(null);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [editableName, setEditableName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -54,85 +437,97 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
     };
   }, [showToast, downloadResult?.showActions, isEditingName, isEditingTags]);
 
+  useEffect(() => {
+    return () => {
+      if (downloadResult?.previewUrl) {
+        URL.revokeObjectURL(downloadResult.previewUrl);
+      }
+    };
+  }, [downloadResult?.previewUrl]);
+
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const result = await generatePdf(url, title, content, cloudAI);
-      
-      if (result.success && result.pdfData) {
-        // Convert base64 to blob and download
-        const byteCharacters = atob(result.pdfData);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
-        
-        // Create download link
-        const downloadUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = result.suggestedName || result.originalName || 'document.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
+      let response: GeneratePdfResponse | null = null;
+      let usedFallback = false;
 
-        // Create file item for library
-        const fileItem: FileItem = {
-          id: result.fileId || `pdf_${Date.now()}`,
-          name: result.suggestedName || result.originalName || 'document.pdf',
-          originalName: result.originalName || 'document.pdf',
-          type: 'pdf',
-          size: byteArray.length,
-          tags: result.tags || [],
-          folder: 'Downloads',
-          addedDate: new Date(),
-          aiSuggested: true,
-          aiRenameAccepted: true,
-          summary: result.summary,
-          url: url, // Store the original URL for reference
-          content: result.pdfData // Store the PDF data for preview
-        };
-
-        // Debug: Check if PDF data is available
-        console.log('📄 PDF Data available:', !!result.pdfData);
-        console.log('📄 PDF Data length:', result.pdfData?.length || 0);
-        console.log('📄 PDF Data preview (first 100 chars):', result.pdfData?.substring(0, 100));
-        console.log('📄 File item content length:', fileItem.content?.length || 0);
-        
-        // Store PDF data in sessionStorage for preview (larger than localStorage)
-        if (result.pdfData) {
-          try {
-            sessionStorage.setItem(`pdf_${fileItem.id}`, result.pdfData);
-            console.log('💾 PDF data stored in sessionStorage for preview');
-          } catch (error) {
-            console.error('Failed to store PDF data in sessionStorage:', error);
-            // If sessionStorage fails, we'll still have the data in memory temporarily
-          }
-        }
-
-        // Add to library
-        addFile(fileItem);
-
-        // Show toast with post-download actions
-        setDownloadResult({
-          file: fileItem,
-          showActions: true,
-          originalSuggestedName: result.suggestedName,
-          originalTags: result.tags || []
-        });
-        setEditableName(result.suggestedName || result.originalName || 'document.pdf');
-        setEditableTags(result.tags || []);
-        setShowToast(true);
-
-      } else {
-        throw new Error(result.error || 'Failed to generate PDF');
+      try {
+        response = await generatePdf(
+          content
+            ? {
+                html: content,
+                title,
+                cloudAI,
+                emulateMedia: 'screen',
+                downloadName: title
+              }
+            : {
+                url,
+                title,
+                cloudAI,
+                emulateMedia: 'screen'
+              }
+        );
+      } catch (serverError) {
+        console.error('Server PDF generation failed, attempting local fallback:', serverError);
+        response = await generatePdfLocally({ url, title, content });
+        usedFallback = true;
       }
+
+      if (!response || !response.success || !response.pdfData) {
+        throw new Error(response?.error || 'Failed to generate PDF');
+      }
+
+      const fileId = response.fileId || `pdf_${Date.now()}`;
+      const safeFileName = sanitizeDownloadName(
+        response.suggestedName || response.originalName || title || 'document.pdf'
+      );
+
+      const pdfBlob = base64ToBlob(response.pdfData);
+      triggerFileDownload(pdfBlob, safeFileName);
+
+      storePdfInSession(fileId, response.pdfData);
+
+      const fileItem: FileItem = {
+        id: fileId,
+        name: safeFileName,
+        originalName: response.originalName || safeFileName,
+        type: 'pdf',
+        size: pdfBlob.size,
+        tags: response.tags || (usedFallback ? ['document'] : []),
+        folder: 'Downloads',
+        addedDate: new Date(),
+        aiSuggested:
+          !usedFallback && Boolean(response.suggestedName && response.suggestedName !== response.originalName),
+        aiRenameAccepted: false,
+        summary: response.summary || (usedFallback ? 'Locally generated PDF.' : ''),
+        url,
+        content: response.pdfData,
+        blob: pdfBlob
+      };
+
+      addFile(fileItem);
+
+      if (downloadResult?.previewUrl) {
+        URL.revokeObjectURL(downloadResult.previewUrl);
+      }
+
+      const previewUrl = URL.createObjectURL(pdfBlob);
+
+      setDownloadResult({
+        file: fileItem,
+        showActions: true,
+        originalSuggestedName: response.suggestedName || safeFileName,
+        originalTags: response.tags || (usedFallback ? ['document'] : []),
+        previewUrl,
+        pdfBase64: response.pdfData
+      });
+
+      setEditableName(fileItem.name);
+      setEditableTags(response.tags || (usedFallback ? ['document'] : []));
+      setShowToast(true);
     } catch (error) {
       console.error('PDF generation failed:', error);
-      // Show error toast
       setDownloadResult({
         error: error instanceof Error ? error.message : 'Failed to generate PDF'
       });
@@ -145,48 +540,25 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
 
   const handleOpenFile = () => {
     if (downloadResult?.file) {
-      // Try to get PDF data from sessionStorage first, then fallback to file.content
-      let pdfData = null;
-      
-      try {
-        pdfData = sessionStorage.getItem(`pdf_${downloadResult.file.id}`);
-        console.log('📄 PDF data from sessionStorage for open:', !!pdfData, pdfData?.length || 0);
-      } catch (error) {
-        console.error('Error accessing sessionStorage:', error);
-      }
-      
-      // Fallback to file.content if sessionStorage doesn't have it
-      if (!pdfData && downloadResult.file.content) {
-        pdfData = downloadResult.file.content;
-        console.log('📄 Using fallback PDF data from file.content for open');
-      }
-      
-      if (pdfData) {
-        try {
-          // Convert base64 to blob and open PDF in new tab
-          const byteCharacters = atob(pdfData);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          
-          const newWindow = window.open(url, '_blank');
-          if (newWindow) {
-            // Clean up the URL after a delay to free memory
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }
-          
-          
-          setShowToast(false);
-        } catch (error) {
-          console.error('Error opening PDF:', error);
-          alert('Unable to open PDF. The file data may be corrupted.');
-        }
-      } else {
+      const base64Data =
+        downloadResult.pdfBase64 ||
+        readPdfFromSession(downloadResult.file.id) ||
+        (typeof downloadResult.file.content === 'string' ? downloadResult.file.content : null);
+
+      if (!base64Data) {
         alert('PDF content not available for preview.');
+        return;
+      }
+
+      try {
+        const blob = base64ToBlob(base64Data);
+        const objectUrl = URL.createObjectURL(blob);
+        window.open(objectUrl, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+        setShowToast(false);
+      } catch (error) {
+        console.error('Error opening PDF:', error);
+        alert('Unable to open PDF. The file data may be corrupted.');
       }
     }
   };
@@ -199,22 +571,25 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
   };
 
   const handleFolderSelect = (folderId: string, folderName: string) => {
-    if (downloadResult?.file) {
-      // Move file to selected folder
-      updateFile(downloadResult.file.id, { folder: folderId });
-      
-
-      // Show confirmation toast
-      setDownloadResult({
-        ...downloadResult,
-        showConfirmation: true,
-        confirmationMessage: `Moved to ${folderName} ✅`,
-        confirmationFolderId: folderId,
-        confirmationFolderName: folderName
-      });
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+    if (!downloadResult?.file) {
+      return;
     }
+
+    updateFile(downloadResult.file.id, { folder: folderId });
+
+    setDownloadResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            showConfirmation: true,
+            confirmationMessage: `Moved to ${folderName} ✅`,
+            confirmationFolderId: folderId,
+            confirmationFolderName: folderName
+          }
+        : prev
+    );
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleUndoMove = () => {
@@ -370,7 +745,7 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
                   ) : (
                     <div className="flex items-center space-x-2">
                       <p className="text-sm text-gray-600 truncate flex-1">
-                        "{downloadResult.file.name}"
+                        "{downloadResult.file?.name}"
                       </p>
                       <button
                         onClick={() => setIsEditingName(true)}
@@ -485,6 +860,14 @@ export function PdfDownloadButton({ url, title, content }: PdfDownloadButtonProp
                   >
                     Open
                   </button>
+                  {downloadResult?.previewUrl && (
+                    <button
+                      onClick={() => window.open(downloadResult.previewUrl, '_blank')}
+                      className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 text-sm font-medium transition-colors"
+                    >
+                      Preview
+                    </button>
+                  )}
                   <button
                     onClick={handleOrganize}
                     className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 text-sm font-medium transition-colors"

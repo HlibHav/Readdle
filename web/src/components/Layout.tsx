@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../state/store';
-import { Settings, Library, Moon, Sun, BookOpen } from 'lucide-react';
+import { Settings, Library, Moon, Sun, BookOpen, Wrench } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -32,6 +32,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', label: 'Browser', icon: Settings },
     { path: '/library', label: 'Library', icon: Library },
+    { path: '/tools', label: 'Tools', icon: Wrench },
   ];
 
   return (

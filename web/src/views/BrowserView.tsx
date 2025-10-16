@@ -3,62 +3,136 @@ import { useAppStore } from '../state/store';
 import { UrlBar } from '../components/UrlBar';
 import { PagePreview } from '../components/PagePreview';
 import { AssistantPanel } from '../components/AssistantPanel';
-import { extractPageContent } from '../lib/api';
+import { ToolsSection } from '../components/ToolsSection';
+import { InlineSearchResults } from '../components/InlineSearchResults';
+import { IframeWithFallback } from '../components/IframeWithFallback';
+import { extractPageContent, unifiedSearch } from '../lib/api';
+import { isUrl, normalizeUrl } from '../lib/urlUtils';
+import { DocumentSearchResult, WebSearchResult } from '../lib/types';
 import toast from 'react-hot-toast';
 
 export function BrowserView() {
   const [url, setUrl] = useState('');
   const [showAssistant, setShowAssistant] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<DocumentSearchResult | WebSearchResult | null>(null);
   
-  const { 
+  const {
     currentPage, 
     setCurrentPage, 
     isLoading, 
     setLoading, 
-    incognito 
+    incognito,
+    searchQuery,
+    documentResults,
+    webResults,
+    isSearching,
+    setSearchQuery,
+    setDocumentResults,
+    setWebResults,
+    setIsSearching,
+    addToSearchHistory
   } = useAppStore();
 
-  console.log('BrowserView currentPage:', currentPage);
+  console.log('BrowserView state:', {
+    currentPage: !!currentPage,
+    showSearchResults,
+    searchQuery,
+    documentResults: documentResults.length,
+    webResults: webResults.length,
+    isSearching
+  });
+
+  console.log('BrowserView render condition:', {
+    hasCurrentPage: !!currentPage,
+    showSearchResults,
+    willShowSearchResults: !currentPage && showSearchResults,
+    willShowTools: !currentPage && !showSearchResults
+  });
+
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      toast.error('Please enter a search query or URL');
+      return;
+    }
+
+    // Check if it's a URL or search query
+    if (isUrl(query)) {
+      // It's a URL, load the page with normalized URL
+      const normalizedUrl = normalizeUrl(query);
+      try {
+        setLoading(true);
+        setShowSearchResults(false);
+        
+        const content = await extractPageContent(normalizedUrl);
+        setCurrentPage({
+          ...content,
+          url: normalizedUrl,
+        });
+        
+        toast.success('Page loaded successfully');
+      } catch (error) {
+        console.error('Error loading page:', error);
+        toast.error('Failed to load page. Please check the URL and try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // It's a search query
+      console.log('🔍 Starting search for:', query);
+      setSearchQuery(query);
+      setShowSearchResults(true);
+      setIsSearching(true);
+      addToSearchHistory(query);
+
+      try {
+        console.log('🔍 Calling unifiedSearch API...');
+        const results = await unifiedSearch({ query, includeWeb: true });
+        console.log('🔍 Search results received:', results);
+        setDocumentResults(results.documents);
+        setWebResults(results.web);
+        toast.success(`Found ${results.totalDocuments} documents and ${results.totalWeb} web results.`);
+      } catch (error) {
+        console.error('❌ Search failed:', error);
+        toast.error('Failed to perform search. Please try again.');
+        setDocumentResults([]);
+        setWebResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }
+  };
 
   const handleGo = async () => {
     if (!url.trim()) {
-      toast.error('Please enter a URL');
+      toast.error('Please enter a URL or search query');
       return;
     }
 
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch (error) {
-      toast.error('Please enter a valid URL (e.g., https://example.com)');
-      return;
-    }
-
-    // Prevent using error messages as URLs
-    if (url.includes('Failed to load page') || url.includes('Please check the URL')) {
-      toast.error('Please enter a valid URL');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const content = await extractPageContent(url);
-      setCurrentPage({
-        ...content,
-        url,
-      });
-      
-      toast.success('Page loaded successfully');
-    } catch (error) {
-      console.error('Error loading page:', error);
-      toast.error('Failed to load page. Please check the URL and try again.');
-      // Clear the URL field if it contains an error message
-      if (url.includes('Failed to load page') || url.includes('Please check the URL')) {
-        setUrl('');
+    // Check if it's a URL or search query
+    if (isUrl(url)) {
+      // It's a URL, load the page with normalized URL
+      const normalizedUrl = normalizeUrl(url);
+      try {
+        setLoading(true);
+        setShowSearchResults(false);
+        
+        const content = await extractPageContent(normalizedUrl);
+        setCurrentPage({
+          ...content,
+          url: normalizedUrl,
+        });
+        
+        toast.success('Page loaded successfully');
+      } catch (error) {
+        console.error('Error loading page:', error);
+        toast.error('Failed to load page. Please check the URL and try again.');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+    } else {
+      // It's a search query
+      await handleSearch(url);
     }
   };
 
@@ -71,6 +145,19 @@ export function BrowserView() {
     setShowAssistant(!showAssistant);
   };
 
+  const handleResultClick = (result: DocumentSearchResult | WebSearchResult) => {
+    // Immediately load content inline without showing search result cards
+    setSelectedResult(result);
+    // Hide the search results list since we're showing content directly
+    setShowSearchResults(false);
+  };
+
+  const handleBackToResults = () => {
+    setSelectedResult(null);
+    // Show search results again when going back
+    setShowSearchResults(true);
+  };
+
   return (
     <div className="flex h-screen">
       {/* Main Browser Area */}
@@ -81,6 +168,7 @@ export function BrowserView() {
               url={url}
               setUrl={setUrl}
               onGo={handleGo}
+              onSearch={handleSearch}
               isLoading={isLoading}
               showAssistant={showAssistant}
               onAssistantToggle={handleAssistantToggle}
@@ -91,43 +179,132 @@ export function BrowserView() {
                 title: currentPage.title,
                 content: currentPage.content
               } : undefined}
+              hasSelectedResult={!!selectedResult}
+              onBackToResults={handleBackToResults}
             />
         </div>
 
-        {/* Page Preview */}
+        {/* Page Preview, Search Results, Content Display, or Tools */}
         <div className="flex-1 overflow-auto">
           {currentPage ? (
             <PagePreview page={currentPage} />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🌐</div>
-                <h2 className="text-xl font-medium mb-2">Enter a URL to get started</h2>
-                <p className="text-sm">Try a news article or blog post for the best experience</p>
+          ) : selectedResult ? (
+            <div className="h-full bg-white flex flex-col">
+              {/* Content Display */}
+              <div className="flex-1 overflow-hidden">
+                {'url' in selectedResult && selectedResult.url ? (
+                  // Web result content - display full page in iframe
+                  <div className="h-full bg-white">
+                    <IframeWithFallback
+                      src={selectedResult.url}
+                      className="h-full"
+                    />
+                  </div>
+                ) : (
+                  // Document result content
+                  <div className="p-6 h-full overflow-auto">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <span className="text-2xl">📄</span>
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                          {selectedResult.name}
+                        </h1>
+                        <div className="text-sm text-gray-500">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                            {selectedResult.type.toUpperCase()}
+                          </span>
+                          <span className="ml-2">{selectedResult.folder}</span>
+                          <span className="ml-2">{new Date(selectedResult.addedDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedResult.type === 'pdf' && selectedResult.url ? (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2">Preview</h3>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          <iframe
+                            src={selectedResult.url}
+                            className="w-full h-96"
+                            title={`Preview of ${selectedResult.name}`}
+                            sandbox="allow-same-origin allow-scripts"
+                          />
+                        </div>
+                      </div>
+                    ) : selectedResult.type === 'pdf' && selectedResult.content ? (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2">Preview</h3>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          <iframe
+                            src={`data:application/pdf;base64,${selectedResult.content}`}
+                            className="w-full h-96"
+                            title={`Preview of ${selectedResult.name}`}
+                            sandbox="allow-same-origin allow-scripts"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                    
+                    {selectedResult.highlightedSnippet ? (
+                      <div className="prose prose-gray max-w-none">
+                        <h3 className="text-lg font-semibold mb-2">Content</h3>
+                        <div 
+                          dangerouslySetInnerHTML={{
+                            __html: selectedResult.highlightedSnippet.replace(
+                              /<mark>/g, '<mark class="bg-yellow-200 px-1 rounded">'
+                            )
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="prose prose-gray max-w-none">
+                        <h3 className="text-lg font-semibold mb-2">Content</h3>
+                        <p>{selectedResult.snippet}</p>
+                      </div>
+                    )}
+                    
+                    {selectedResult.tags.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-2">Tags</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedResult.tags.map((tag, index) => (
+                            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+            </div>
+          ) : showSearchResults ? (
+            <InlineSearchResults
+              query={searchQuery}
+              documentResults={documentResults}
+              webResults={webResults}
+              isSearching={isSearching}
+              onResultClick={handleResultClick}
+            />
+          ) : (
+            <div className="h-full">
+              {/* Tools Section */}
+              <ToolsSection />
             </div>
           )}
         </div>
 
-        {/* Page Info */}
-        {currentPage && (
-          <div className="p-4 border-t border-gray-200 bg-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                {currentPage.domain}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Assistant Panel */}
+                {showAssistant && currentPage && (
+                  <AssistantPanel
+                    page={currentPage}
+                    onClose={() => setShowAssistant(false)}
+                  />
+                )}
       </div>
-
-      {/* Assistant Panel */}
-      {showAssistant && currentPage && (
-        <AssistantPanel
-          page={currentPage}
-          onClose={() => setShowAssistant(false)}
-        />
-      )}
     </div>
   );
 }
