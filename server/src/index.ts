@@ -54,9 +54,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.use(cors(corsOptions));
-
-// Manual CORS headers as backup
+// Manual CORS headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin === 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app') {
