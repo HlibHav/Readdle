@@ -46,37 +46,14 @@ const PORT = process.env.PORT || 5174;
 
 // Configure CORS for production deployment
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = process.env.NODE_ENV === 'production'
-      ? [
-          process.env.FRONTEND_URL,
-          /\.vercel\.app$/,
-          /\.railway\.app$/,
-          /\.onrender\.com$/
-        ]
-      : ['http://localhost:5173', 'http://localhost:5174'];
-    
-    // Check if origin matches any allowed origin
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (typeof allowed === 'string') {
-        return origin === allowed;
-      }
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS: Blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        'https://web-obrqtyqdn-hlibhavs-projects.vercel.app',
+        /\.vercel\.app$/,
+        /\.railway\.app$/,
+        /\.onrender\.com$/
+      ]
+    : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
