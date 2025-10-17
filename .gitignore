@@ -112,3 +112,4 @@ temp/
 **/api-keys.json
 **/secrets.json
 **/credentials.json
+.vercel
