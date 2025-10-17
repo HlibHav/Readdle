@@ -1,5 +1,23 @@
-import Typesense from 'typesense';
-import { FileItem } from '../../web/src/state/store.js';
+import Typesense, { type Client } from 'typesense';
+
+// Define FileItem interface locally to avoid import issues
+export interface FileItem {
+  id: string;
+  name: string;
+  originalName: string;
+  type: string;
+  size: number;
+  tags: string[];
+  folder: string;
+  addedDate: Date | string;
+  url?: string;
+  content?: string;
+  blob?: Blob;
+  aiSuggested?: boolean;
+  aiRenameAccepted?: boolean;
+  summary?: string;
+  undoClicked?: boolean;
+}
 
 export interface DocumentSearchResult {
   id: string;
@@ -28,8 +46,12 @@ export interface SearchRequest {
   query: string;
   filters?: {
     documentTypes?: string[];
+    fileTypes?: string[];
+    contentTypes?: string[];
     dateRange?: { from: Date; to: Date };
     folders?: string[];
+    minWordCount?: number;
+    maxWordCount?: number;
   };
   limit?: number;
   includeWeb?: boolean;
@@ -44,7 +66,7 @@ export interface SearchResponse {
 }
 
 export class TypesenseService {
-  private client: Typesense.Client;
+  private client: Client;
   private collectionName: string;
   private isInitialized: boolean = false;
 
@@ -84,7 +106,7 @@ export class TypesenseService {
   }
 
   private async createCollection(): Promise<void> {
-    const schema = {
+    const schema: any = {
       name: this.collectionName,
       fields: [
         { name: 'id', type: 'string' },
@@ -146,8 +168,8 @@ export class TypesenseService {
       await this.client.collections(this.collectionName).documents().upsert(document);
       console.log(`✅ Indexed document: ${file.name}`);
     } catch (error) {
-      console.error(`❌ Failed to index document ${file.name}:`, error);
-      throw error;
+        console.error(`❌ Failed to index document ${file.name}:`, error);
+        throw error instanceof Error ? error : new Error('Unknown error occurred');
     }
   }
 
@@ -337,7 +359,7 @@ export class TypesenseService {
           return results;
         }
       } catch (error) {
-        console.warn(`⚠️ Search provider failed:`, error.message);
+        console.warn(`⚠️ Search provider failed:`, error instanceof Error ? error.message : 'Unknown error');
         continue;
       }
     }
@@ -522,13 +544,22 @@ export class TypesenseService {
       return {
         name: collection.name,
         documentCount: collection.num_documents,
-        fields: collection.fields.length,
+        fields: collection.fields?.length || 0,
         createdAt: collection.created_at
       };
     } catch (error) {
       console.error('❌ Failed to get collection stats:', error);
       return null;
     }
+  }
+
+  // Public accessor methods for external use
+  getClient(): Client {
+    return this.client;
+  }
+
+  getCollectionName(): string {
+    return this.collectionName;
   }
 }
 

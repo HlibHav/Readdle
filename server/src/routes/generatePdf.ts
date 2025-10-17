@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,7 +35,7 @@ interface GeneratePdfResponse {
  * Best practices implementation with proper error handling and cleanup
  */
 export async function generatePdf(req: Request, res: Response): Promise<void> {
-  let browser: puppeteer.Browser | null = null;
+  let browser: Browser | null = null;
   let tempHtmlPath: string | null = null;
 
   try {
@@ -81,7 +81,7 @@ export async function generatePdf(req: Request, res: Response): Promise<void> {
       timeout: 30000
     });
 
-    const page = await browser.newPage();
+    const page: Page = await browser.newPage();
 
     // Set viewport for consistent rendering
     await page.setViewport({

@@ -294,7 +294,7 @@ export async function indexLibraryFiles(req: Request, res: Response) {
         results.push({ id: file.id, name: file.name, success: true });
       } catch (error) {
         console.error(`Failed to index file ${file.name}:`, error);
-        results.push({ id: file.id, name: file.name, success: false, error: error.message });
+        results.push({ id: file.id, name: file.name, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 
@@ -323,10 +323,12 @@ export async function indexLibraryFiles(req: Request, res: Response) {
 export async function getDocumentFilters(req: Request, res: Response) {
   try {
     // Get available filters from the collection
-    const collection = await typesenseService.client.collections(typesenseService.collectionName).retrieve();
+    const client = typesenseService.getClient();
+    const collectionName = typesenseService.getCollectionName();
+    const collection = await client.collections(collectionName).retrieve();
     
     // Get facet counts for available filters
-    const facetSearch = await typesenseService.client.collections(typesenseService.collectionName).documents().search({
+    const facetSearch = await client.collections(collectionName).documents().search({
       q: '*',
       per_page: 0,
       facet_by: 'type,folder,fileExtension,isImage,isDocument',

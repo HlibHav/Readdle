@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 
 export interface ExtractedContent {
   title: string;
@@ -90,7 +90,7 @@ function extractImagesFromDocument(document: Document, baseUrl: string): Array<{
 }
 
 async function extractWithPuppeteer(url: string): Promise<ExtractedContent> {
-  const browser = await puppeteer.launch({
+  const browser: Browser = await puppeteer.launch({
     headless: true,
     args: [
       '--no-sandbox',
@@ -102,7 +102,7 @@ async function extractWithPuppeteer(url: string): Promise<ExtractedContent> {
   });
   
   try {
-    const page = await browser.newPage();
+    const page: Page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
     
     // Wait a bit for dynamic content to load
