@@ -1,0 +1,28 @@
+🔧 RAILWAY ENVIRONMENT VARIABLES - COPY THESE EXACTLY:
+
+In your Railway dashboard (which should be open):
+
+1. Click on the SERVICE (not the project, but the service inside it)
+2. Click the "Variables" tab
+3. Click "New Variable" and add each of these:
+
+Variable Name: OPENAI_API_KEY
+Value: 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
+
+Variable Name: HUGGINGFACE_API_KEY  
+Value: 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
+
+Variable Name: NODE_ENV
+Value: production
+
+Variable Name: PORT
+Value: 5174
+
+Variable Name: PHOENIX_OBSERVABILITY_ENABLED
+Value: false
+
+4. After adding all 5 variables, Railway will automatically redeploy
+5. Wait 1-2 minutes for deployment to complete
+6. Refresh your frontend: https://web-qup0j9qib-hlibhavs-projects.vercel.app
+
+The "Failed to load page" error will disappear once the backend has these environment variables!

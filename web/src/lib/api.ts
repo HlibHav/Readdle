@@ -1,9 +1,10 @@
 import { ExtractedContent, SummaryResponse, QAResponse, SearchRequest, SearchResponse, DocumentSearchResult, WebSearchResult } from './types';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 export async function extractPageContent(url: string): Promise<ExtractedContent> {
-  const response = await fetch(`${API_BASE}/extract`, {
+  const response = await fetch(`${API_BASE}/api/extract`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -19,7 +20,7 @@ export async function extractPageContent(url: string): Promise<ExtractedContent>
 }
 
 export async function summarizeContent(text: string, cloudAI: boolean): Promise<SummaryResponse> {
-  const response = await fetch(`${API_BASE}/summarize`, {
+  const response = await fetch(`${API_BASE}/api/summarize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -35,7 +36,7 @@ export async function summarizeContent(text: string, cloudAI: boolean): Promise<
 }
 
 export async function answerQuestion(text: string, question: string, cloudAI: boolean): Promise<QAResponse> {
-  const response = await fetch(`${API_BASE}/qa`, {
+  const response = await fetch(`${API_BASE}/api/qa`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -56,7 +57,7 @@ export async function suggestFilename(file: any, content?: string): Promise<{
   reasoning: string;
   success: boolean;
 }> {
-  const response = await fetch(`${API_BASE}/suggest-filename`, {
+  const response = await fetch(`${API_BASE}/api/suggest-filename`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ export async function suggestFilename(file: any, content?: string): Promise<{
 
 // RAG API functions
 export async function getRAGStrategies(): Promise<{ strategies: any[] }> {
-  const response = await fetch(`${API_BASE}/rag/strategies`);
+  const response = await fetch(`${API_BASE}/api/rag/strategies`);
   if (!response.ok) {
     throw new Error(`Failed to get RAG strategies: ${response.statusText}`);
   }
@@ -86,7 +87,7 @@ export async function detectDevice(): Promise<{
   shouldUseLocal: boolean;
   recommendations: any;
 }> {
-  const response = await fetch(`${API_BASE}/rag/detect-device`, {
+  const response = await fetch(`${API_BASE}/api/rag/detect-device`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ export async function processWithRAG(content: string, question: string, strategy
   processingTime: number;
   deviceInfo: any;
 }> {
-  const response = await fetch(`${API_BASE}/rag/process`, {
+  const response = await fetch(`${API_BASE}/api/rag/process`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ export async function translateContent(text: string, targetLanguage: string, clo
   success: boolean;
   error?: string;
 }> {
-  const response = await fetch(`${API_BASE}/translate`, {
+  const response = await fetch(`${API_BASE}/api/translate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export async function analyzeForInsights(text: string, cloudAI: boolean): Promis
   success: boolean;
   error?: string;
 }> {
-  const response = await fetch(`${API_BASE}/analyze`, {
+  const response = await fetch(`${API_BASE}/api/analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ export async function createTodos(text: string, cloudAI: boolean): Promise<{
   success: boolean;
   error?: string;
 }> {
-  const response = await fetch(`${API_BASE}/todos`, {
+  const response = await fetch(`${API_BASE}/api/todos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -286,7 +287,7 @@ export async function generateWithOpenELM(modelId: string, prompt: string, optio
 
 // Search API functions
 export async function unifiedSearch(request: SearchRequest): Promise<SearchResponse> {
-  const response = await fetch(`${API_BASE}/search`, {
+  const response = await fetch(`${API_BASE}/api/search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

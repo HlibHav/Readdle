@@ -26,11 +26,7 @@ railway init --name readdle-browser-backend
 
 # Set environment variables
 echo "Setting environment variables..."
-railway variables set OPENAI_API_KEY="your-openai-api-key-here"
-railway variables set HUGGINGFACE_API_KEY="your-huggingface-api-key-here"
-railway variables set NODE_ENV="production"
-railway variables set PORT="5174"
-railway variables set PHOENIX_OBSERVABILITY_ENABLED="false"
+railway variables --set "OPENAI_API_KEY=your-openai-api-key-here" --set "HUGGINGFACE_API_KEY=your-huggingface-api-key-here" --set "NODE_ENV=production" --set "PORT=5174" --set "PHOENIX_OBSERVABILITY_ENABLED=false"
 
 # Deploy backend
 echo "Deploying backend..."

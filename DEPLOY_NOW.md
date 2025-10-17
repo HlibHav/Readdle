@@ -29,10 +29,7 @@ railway login   # Opens browser - login and press Enter
 railway init
 
 # Set environment variables
-railway variables set OPENAI_API_KEY="your-openai-api-key-here"
-railway variables set HUGGINGFACE_API_KEY="your-huggingface-api-key-here"
-railway variables set NODE_ENV="production"
-railway variables set PORT="5174"
+railway variables --set "OPENAI_API_KEY=your-openai-api-key-here" --set "HUGGINGFACE_API_KEY=your-huggingface-api-key-here" --set "NODE_ENV=production" --set "PORT=5174"
 
 # Deploy
 railway up

@@ -1,0 +1,17 @@
+🔧 CORS FIX - Add One More Environment Variable:
+
+The Railway dashboard is now open. You need to add ONE more environment variable:
+
+1. Click on your SERVICE in the Railway dashboard
+2. Click "Variables" tab
+3. Click "New Variable"
+4. Add this:
+
+Variable Name: FRONTEND_URL
+Value: https://web-obrqtyqdn-hlibhavs-projects.vercel.app
+
+5. Save and wait for Railway to redeploy (1-2 minutes)
+
+This will fix the CORS issue and allow your frontend to communicate with the backend.
+
+After adding this variable, refresh your frontend and the "Failed to load page" error should disappear!

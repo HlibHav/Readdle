@@ -7,12 +7,14 @@
 
 const getApiBaseUrl = (): string => {
   // Check for environment variable first (production)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const viteApiUrl = (import.meta as any).env?.VITE_API_URL;
+  if (viteApiUrl) {
+    return viteApiUrl;
   }
 
   // Development fallback
-  if (import.meta.env.DEV) {
+  const isDev = (import.meta as any).env?.DEV;
+  if (isDev) {
     return 'http://localhost:5174';
   }
 
