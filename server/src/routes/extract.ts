@@ -182,6 +182,13 @@ async function extractWithPuppeteer(url: string): Promise<ExtractedContent> {
 }
 
 export async function extractPageContent(req: Request, res: Response) {
+  // Set CORS headers directly
+  const origin = req.headers.origin;
+  if (origin === 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
   console.log('🔍 extractPageContent called with URL:', req.body.url);
   try {
     const { url } = req.body;
