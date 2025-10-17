@@ -18,8 +18,8 @@ const getApiBaseUrl = (): string => {
     return 'http://localhost:5174';
   }
 
-  // Production fallback - same origin (Vercel deployment)
-  return '';
+  // Production fallback - Railway backend
+  return 'https://readdle-browser-backend-production.up.railway.app';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
