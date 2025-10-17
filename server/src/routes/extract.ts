@@ -182,9 +182,13 @@ async function extractWithPuppeteer(url: string): Promise<ExtractedContent> {
 }
 
 export async function extractPageContent(req: Request, res: Response) {
-  // Set CORS headers directly for Vercel
+  // Set CORS headers directly - allow any Vercel deployment
   const origin = req.headers.origin;
-  if (origin) {
+  if (origin && (
+    origin.includes('vercel.app') || 
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  )) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }

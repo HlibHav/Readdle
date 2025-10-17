@@ -44,10 +44,16 @@ phoenixInstrumentation.initialize();
 const app = express();
 const PORT = process.env.PORT || 5174;
 
-// CORS middleware - simplified for Vercel
+// CORS middleware - allow any Vercel deployment
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
+  
+  // Allow any Vercel deployment or localhost
+  if (origin && (
+    origin.includes('vercel.app') || 
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  )) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
