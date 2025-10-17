@@ -57,7 +57,12 @@ const corsOptions = {
 // Manual CORS headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  console.log('CORS Middleware - Origin:', origin);
+  console.log('CORS Middleware - Method:', req.method);
+  console.log('CORS Middleware - URL:', req.url);
+  
   if (origin === 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app') {
+    console.log('Setting Access-Control-Allow-Origin header');
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -65,6 +70,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     res.sendStatus(200);
   } else {
     next();
