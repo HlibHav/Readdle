@@ -61,17 +61,18 @@ app.use((req, res, next) => {
   console.log('CORS Middleware - Method:', req.method);
   console.log('CORS Middleware - URL:', req.url);
   
+  // Always set CORS headers for the frontend
   if (origin === 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app') {
     console.log('Setting Access-Control-Allow-Origin header');
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS request');
-    res.sendStatus(200);
+    res.status(200).end();
   } else {
     next();
   }
