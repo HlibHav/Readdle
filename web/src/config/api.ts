@@ -18,8 +18,8 @@ const getApiBaseUrl = (): string => {
     return 'http://localhost:5174';
   }
 
-  // Production fallback - same origin
-  return window.location.origin;
+  // Production fallback - same origin (Vercel deployment)
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

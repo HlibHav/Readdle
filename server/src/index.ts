@@ -44,25 +44,16 @@ phoenixInstrumentation.initialize();
 const app = express();
 const PORT = process.env.PORT || 5174;
 
-// CORS middleware - set headers for all requests
+// CORS middleware - simplified for Vercel
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Set CORS headers for the frontend - try multiple approaches
-  if (origin === 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app') {
+  if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    // Also try setting headers in response object
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
   
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;

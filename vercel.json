@@ -2,13 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "src": "web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "web/dist"
-      }
-    },
-    {
       "src": "server/src/index.ts",
       "use": "@vercel/node"
     }
@@ -17,20 +10,6 @@
     {
       "src": "/api/(.*)",
       "dest": "server/src/index.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "web/dist/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/src/index.ts": {
-      "memory": 3008,
-      "maxDuration": 60
-    }
-  }
+  ]
 }
-
