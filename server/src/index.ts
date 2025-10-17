@@ -42,9 +42,24 @@ dotenv.config();
 phoenixInstrumentation.initialize();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5174;
 
-app.use(cors());
+// Configure CORS for production deployment
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        process.env.FRONTEND_URL || '',
+        /\.vercel\.app$/, // Allow all Vercel preview deployments
+        /\.railway\.app$/,
+        /\.onrender\.com$/
+      ].filter(Boolean)
+    : ['http://localhost:5173', 'http://localhost:5174'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '100mb' })); // Increase limit for large PDF data
 
 // Routes

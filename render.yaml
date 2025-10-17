@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: readdle-browser-backend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd server && pnpm install && pnpm build
+    startCommand: cd server && pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5174
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: TYPESENSE_HOST
+        sync: false
+      - key: TYPESENSE_PORT
+        value: 443
+      - key: TYPESENSE_PROTOCOL
+        value: https
+      - key: TYPESENSE_API_KEY
+        sync: false
+      - key: TYPESENSE_COLLECTION_NAME
+        value: documents
+      - key: PHOENIX_OBSERVABILITY_ENABLED
+        value: false
+

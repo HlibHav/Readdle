@@ -395,19 +395,40 @@ export PHOENIX_API_KEY=your_phoenix_api_key
 
 ### **Production Deployment**
 
-```bash
-# Build for production
-pnpm build
+#### **Quick Deploy (Recommended)**
 
-# Deploy with Docker
+```bash
+# 1. Deploy Backend to Railway
+./scripts/deploy-backend.sh
+
+# 2. Deploy Frontend to Vercel
+./scripts/deploy-frontend.sh
+```
+
+#### **Manual Deployment**
+
+```bash
+# Frontend (Vercel)
+cd web
+npm i -g vercel
+vercel --prod
+
+# Backend (Railway)
+cd ..
+npm i -g @railway/cli
+railway login
+railway init
+railway up
+
+# Or use Docker
 docker build -t documents-browser .
 docker run -p 5173:5173 -p 5174:5174 documents-browser
-
-# Environment configuration
-export OPENAI_API_KEY=your_api_key
-export HUGGINGFACE_API_KEY=your_huggingface_api_key
-export NODE_ENV=production
 ```
+
+📚 **Detailed Guides:**
+- [Quick Start Guide](./DEPLOYMENT_QUICKSTART.md) - Deploy in 5 minutes
+- [Full Deployment Guide](./VERCEL_DEPLOYMENT.md) - Complete documentation
+- [Deployment Checklist](./DEPLOYMENT_CHECKLIST.md) - Step-by-step checklist
 
 ### **🍎 OpenELM Configuration**
 ```bash
