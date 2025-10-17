@@ -47,12 +47,7 @@ const PORT = process.env.PORT || 5174;
 // Configure CORS for production deployment
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://web-obrqtyqdn-hlibhavs-projects.vercel.app',
-        /\.vercel\.app$/,
-        /\.railway\.app$/,
-        /\.onrender\.com$/
-      ]
+    ? 'https://web-obrqtyqdn-hlibhavs-projects.vercel.app'
     : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
